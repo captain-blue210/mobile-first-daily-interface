@@ -12,9 +12,11 @@
     "importHelpers": true,
     "isolatedModules": true,
     "strictPropertyInitialization": false,
+    "allowSyntheticDefaultImports": true,
     "lib": ["DOM", "ES5", "ES6", "ES7"],
     "jsx": "react",
-    "types": ["@types/bun"]
+    "types": ["@types/bun", "@types/jest"]
   },
-  "include": ["**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"]
 }
