@@ -2,7 +2,7 @@
   "id": "obsidian-mobile-memo",
   "name": "Mobile Memo",
   "version": "1.0.1",
-  "minAppVersion": "1.0.0",
+  "minAppVersion": "1.2.8",
   "description": "TODO",
   "author": "hayato-aoki(original author:tadashi-aikawa)",
   "isDesktopOnly": false
