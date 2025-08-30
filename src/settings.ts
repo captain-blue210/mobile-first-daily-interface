@@ -9,6 +9,9 @@ export interface Settings {
   blueskyIdentifier: string;
   blueskyAppPassword: string;
   postFormatOption: PostFormatOption;
+  dailyNoteDir: string;
+  appendSectionSpec: string;
+  autoDemotePostHeading: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,6 +20,9 @@ export const DEFAULT_SETTINGS: Settings = {
   blueskyIdentifier: "",
   blueskyAppPassword: "",
   postFormatOption: "コードブロック",
+  dailyNoteDir: "",
+  appendSectionSpec: "",
+  autoDemotePostHeading: true,
 };
 
 const leafOptions = ["left", "current", "right"];
@@ -61,6 +67,50 @@ export class MFDISettingTab extends PluginSettingTab {
             this.plugin.rerenderView();
           })
       );
+
+    containerEl.createEl("h3", { text: "📝 デイリーノート" });
+
+    new Setting(containerEl)
+      .setName("デイリーノートのディレクトリ")
+      .setDesc(
+        "Vault相対のフォルダを指定します。空の場合はObsidianのDaily Notes設定を使用します。"
+      )
+      .addText((cb) => {
+        TextComponentEvent.onChange(cb, async (value) => {
+          this.plugin.settings.dailyNoteDir = value;
+          await this.plugin.saveSettings();
+        }).setValue(this.plugin.settings.dailyNoteDir);
+      });
+
+    new Setting(containerEl)
+      .setName("追記先の見出し")
+      .setDesc(
+        "例: ## つぶやき。指定された見出し配下の末尾に追記します。空の場合はファイル末尾に追記します。"
+      )
+      .addText((cb) => {
+        TextComponentEvent.onChange(cb, async (value) => {
+          this.plugin.settings.appendSectionSpec = value;
+          await this.plugin.saveSettings();
+          this.plugin.rerenderView();
+        })
+          .setPlaceholder("例: ## つぶやき")
+          .setValue(this.plugin.settings.appendSectionSpec);
+      });
+
+    new Setting(containerEl)
+      .setName("投稿見出しを自動で段下げ")
+      .setDesc(
+        "見出し形式で投稿する場合、追記先見出しより1段下のレベルに自動調整します。"
+      )
+      .addToggle((tc) => {
+        tc.setValue(this.plugin.settings.autoDemotePostHeading).onChange(
+          async (value) => {
+            this.plugin.settings.autoDemotePostHeading = value;
+            await this.plugin.saveSettings();
+            this.plugin.rerenderView();
+          }
+        );
+      });
 
     new Setting(containerEl)
       .setName("表示リーフ")
