@@ -14,7 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - run: npm i -D --no-save conventional-changelog-conventionalcommits @semantic-release/git @semantic-release/exec
+      - name: Install deps (bun)
+        run: bun install
+      - name: Build plugin artifacts
+        run: bun run build
+      - name: Install semantic-release plugins
+        run: npm i -D --no-save conventional-changelog-conventionalcommits @semantic-release/git @semantic-release/exec @semantic-release/github
       - uses: cycjimmy/semantic-release-action@v4
         with:
           semantic_version: 24.1.2
