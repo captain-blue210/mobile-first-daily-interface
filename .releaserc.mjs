@@ -1,9 +1,5 @@
 export default {
-  branches: [
-    "master",
-    // Enable releasing from the feature branch in this fork
-    { name: "feat/daily-note-config-append-section" },
-  ],
+  branches: ["master"],
   tagFormat: "${version}",
   plugins: [
     [
