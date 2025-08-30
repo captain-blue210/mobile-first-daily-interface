@@ -30,10 +30,11 @@ export interface Post {
   offset: number;
 }
 
-function toText(
+export function toText(
   input: string,
   asTask: boolean,
-  postFormat: PostFormat
+  postFormat: PostFormat,
+  timestampFormat: string
 ): string {
   if (asTask) {
     return `
@@ -41,13 +42,18 @@ function toText(
 `;
   }
 
-  const ts = moment().toISOString(true);
+  const ts = moment().format(timestampFormat);
 
   if (postFormat.type === "codeblock") {
     return `
 \`\`\`\`fw ${ts}
 ${input}
 \`\`\`\`
+`;
+  }
+  if (postFormat.type === "list") {
+    return `
+- ${ts} ${input}
 `;
   }
 
@@ -111,7 +117,12 @@ export const ReactView = ({
       return;
     }
 
-    const text = toText(input, asTask, effectivePostFormat);
+    const text = toText(
+      input,
+      asTask,
+      effectivePostFormat,
+      settings.timestampFormat
+    );
 
     let note = currentDailyNote;
     if (!note) {
@@ -126,7 +137,13 @@ export const ReactView = ({
 
     const spec = settings.appendSectionSpec?.trim();
     if (spec) {
-      await appHelper.insertTextUnderSection(note, spec, text);
+      await appHelper.insertTextUnderSection(
+        note,
+        spec,
+        text,
+        effectivePostFormat,
+        settings.appendSectionEnd
+      );
     } else {
       await appHelper.insertTextToEnd(note, text);
     }
@@ -139,17 +156,32 @@ export const ReactView = ({
         ? ((await appHelper.getCodeBlocks(note)) ?? [])
             ?.filter((x) => x.lang === "fw")
             .map((x) => ({
-              timestamp: moment(x.meta),
+              timestamp: moment(x.meta, settings.timestampFormat, true),
               message: x.code,
               offset: x.offset,
             }))
-        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
-            .filter((x) => moment(x.title).isValid())
+        : postFormat.type === "list"
+        ? ((
+            await appHelper.getListItems(
+              note,
+              settings.appendSectionSpec,
+              settings.appendSectionEnd,
+              settings.timestampFormat
+            )
+          ) ?? [])
             .map((x) => ({
-              timestamp: moment(x.title),
+              timestamp: moment(x.timestamp, settings.timestampFormat, true),
+              message: x.message,
+              offset: x.offset,
+            }))
+            .filter((x) => x.timestamp.isValid())
+        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
+            .map((x) => ({
+              timestamp: moment(x.title, settings.timestampFormat, true),
               message: x.body,
               offset: x.titleOffset,
-            }));
+            }))
+            .filter((x) => x.timestamp.isValid());
 
     setPosts(_posts.sort(sorter((x) => x.timestamp.unix(), "desc")));
   };

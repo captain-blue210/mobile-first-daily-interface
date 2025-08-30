@@ -11,6 +11,8 @@ export interface Settings {
   postFormatOption: PostFormatOption;
   dailyNoteDir: string;
   appendSectionSpec: string;
+  appendSectionEnd: string;
+  timestampFormat: string;
   autoDemotePostHeading: boolean;
 }
 
@@ -22,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   postFormatOption: "コードブロック",
   dailyNoteDir: "",
   appendSectionSpec: "",
+  appendSectionEnd: "",
+  timestampFormat: "YYYY-MM-DD HH:mm",
   autoDemotePostHeading: true,
 };
 
@@ -35,6 +39,7 @@ export const postFormatMap = {
   見出し4: { type: "header", level: 4 },
   見出し5: { type: "header", level: 5 },
   見出し6: { type: "header", level: 6 },
+  リスト: { type: "list" },
 } as const;
 export type PostFormatOption = keyof typeof postFormatMap;
 export type PostFormat = (typeof postFormatMap)[PostFormatOption];
@@ -95,6 +100,31 @@ export class MFDISettingTab extends PluginSettingTab {
         })
           .setPlaceholder("例: ## つぶやき")
           .setValue(this.plugin.settings.appendSectionSpec);
+      });
+
+    new Setting(containerEl)
+      .setName("追記区切り")
+      .setDesc(
+        "指定された見出しの下からこの区切り文字列の上までが追記先になります。"
+      )
+      .addText((cb) => {
+        TextComponentEvent.onChange(cb, async (value) => {
+          this.plugin.settings.appendSectionEnd = value;
+          await this.plugin.saveSettings();
+        }).setValue(this.plugin.settings.appendSectionEnd);
+      });
+
+    new Setting(containerEl)
+      .setName("投稿日時フォーマット")
+      .setDesc("投稿時に付与する日時のフォーマットを指定します。例: YYYY-MM-DD HH:mm")
+      .addText((cb) => {
+        TextComponentEvent.onChange(cb, async (value) => {
+          this.plugin.settings.timestampFormat = value;
+          await this.plugin.saveSettings();
+          this.plugin.rerenderView();
+        })
+          .setPlaceholder("例: YYYY-MM-DD HH:mm")
+          .setValue(this.plugin.settings.timestampFormat);
       });
 
     new Setting(containerEl)
