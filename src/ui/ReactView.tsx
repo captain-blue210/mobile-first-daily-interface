@@ -5,12 +5,6 @@ import { App, moment, Notice, TFile } from "obsidian";
 import { AppHelper, Task } from "../app-helper";
 import { sorter } from "../utils/collections";
 import {
-  createDailyNote,
-  getAllDailyNotes,
-  getDailyNote,
-  getDailyNoteSettings,
-} from "obsidian-daily-notes-interface";
-import {
   ChatIcon,
   CheckCircleIcon,
   ChevronLeftIcon,
@@ -23,6 +17,12 @@ import { PostCardView } from "./PostCardView";
 import { TaskView } from "./TaskView";
 import { replaceDayToJa } from "../utils/strings";
 import { PostFormat, Settings, postFormatMap } from "../settings";
+import {
+  ensureDailyNote,
+  getDailyNoteFile,
+  resolveDailyNotePath,
+} from "src/obsutils/daily-notes";
+import { parseHeadingSpec } from "src/utils/markdown";
 
 export interface Post {
   timestamp: Moment;
@@ -77,7 +77,7 @@ export const ReactView = ({
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
-    const n = getDailyNote(date, getAllDailyNotes()) as TFile | null;
+    const n = getDailyNoteFile(app, date, settings) as TFile | null;
     if (n?.path !== currentDailyNote?.path) {
       setCurrentDailyNote(n);
     }
@@ -96,26 +96,40 @@ export const ReactView = ({
   }, [currentDailyNote]);
 
   const postFormat = postFormatMap[settings.postFormatOption];
+  const effectivePostFormat: PostFormat = useMemo(() => {
+    if (postFormat.type !== "header") return postFormat;
+    const parsed = parseHeadingSpec(settings.appendSectionSpec);
+    const lvl = postFormat.level;
+    if (parsed && settings.autoDemotePostHeading) {
+      return { type: "header", level: Math.max(lvl, parsed.level + 1) } as PostFormat;
+    }
+    return postFormat;
+  }, [postFormat, settings.appendSectionSpec, settings.autoDemotePostHeading]);
 
   const handleSubmit = async () => {
     if (!canSubmit) {
       return;
     }
 
-    const text = toText(input, asTask, postFormat);
+    const text = toText(input, asTask, effectivePostFormat);
 
-    if (!currentDailyNote) {
+    let note = currentDailyNote;
+    if (!note) {
       new Notice("デイリーノートが存在しなかったので新しく作成しました");
-      await createDailyNote(date);
+      const created = await ensureDailyNote(app, date, settings);
+      note = created;
       // 再読み込みをするためにクローンを入れて参照を更新
       setDate(date.clone());
     }
 
-    // デイリーノートがなくてif文に入った場合、setDateからのuseMemoが間に合わずcurrentDailyNoteの値が更新されないので、意図的に同じ処理を呼び出す
-    await appHelper.insertTextToEnd(
-      getDailyNote(date, getAllDailyNotes()),
-      text
-    );
+    if (!note) return;
+
+    const spec = settings.appendSectionSpec?.trim();
+    if (spec) {
+      await appHelper.insertTextUnderSection(note, spec, text);
+    } else {
+      await appHelper.insertTextToEnd(note, text);
+    }
     setInput("");
   };
 
@@ -129,7 +143,7 @@ export const ReactView = ({
               message: x.code,
               offset: x.offset,
             }))
-        : ((await appHelper.getHeaders(note, postFormat.level)) ?? [])
+        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
             .filter((x) => moment(x.title).isValid())
             .map((x) => ({
               timestamp: moment(x.title),
@@ -145,17 +159,16 @@ export const ReactView = ({
   };
 
   const handleClickOpenDailyNote = async () => {
-    if (!currentDailyNote) {
+    let note = currentDailyNote;
+    if (!note) {
       new Notice("デイリーノートが存在しなかったので新しく作成しました");
-      await createDailyNote(date);
+      const created = await ensureDailyNote(app, date, settings);
+      note = created;
       // 再読み込みをするためにクローンを入れて参照を更新
       setDate(date.clone());
     }
-
-    // デイリーノートがなくてif文に入った場合、setDateからのuseMemoが間に合わずcurrentDailyNoteの値が更新されないので、意図的に同じ処理を呼び出す
-    await app.workspace
-      .getLeaf(true)
-      .openFile(getDailyNote(date, getAllDailyNotes()));
+    if (!note) return;
+    await app.workspace.getLeaf(true).openFile(note);
   };
   const handleChangeCalendarDate = (
     event: ChangeEvent<HTMLInputElement>
@@ -208,11 +221,9 @@ export const ReactView = ({
         }
 
         if (currentDailyNote == null) {
-          const ds = getDailyNoteSettings();
-          const dir = ds.folder ? `${ds.folder}/` : "";
-          const entry = date.format(ds.format);
+          const expected = resolveDailyNotePath(app, date, settings);
           // 更新されたファイルがcurrentDailyNoteになるべきファイルではなければ処理は不要
-          if (file.path !== `${dir}${entry}.md`) {
+          if (file.path !== expected) {
             return;
           }
         }
