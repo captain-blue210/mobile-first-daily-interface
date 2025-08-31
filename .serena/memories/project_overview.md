@@ -1,0 +1,6 @@
+- Purpose: Obsidian plugin providing a mobile-first daily note interface (MFDI), with features like posting messages/tasks to Daily Notes and optional Bluesky integration.
+- Stack: TypeScript, Obsidian API, React (via ReactDOM createRoot), esbuild bundling, Jest for tests, Bun for scripts.
+- Structure: `src/main.ts` (plugin entry), `src/ui/*` (views/components; `MDFIView.tsx` for the view), `src/settings.ts` (settings + tab), `src/obsutils/*` (obsidian helpers), `src/utils/*` (utilities), `src/clients/bluesky.ts` (Bluesky client). Root `manifest.json` is the Obsidian plugin manifest.
+- Build artifacts: Bundled output to `main.js` per esbuild config; `manifest.json`, `styles.css` in root.
+- Notes: Plugin name in `manifest.json` controls settings sidebar label; ribbon tooltip and view title come from `src/main.ts` and `src/ui/MDFIView.tsx` respectively.
+- OS: Darwin; standard Unix commands apply.

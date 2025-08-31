@@ -1,0 +1,7 @@
+- Language: TypeScript with strict typing across src.
+- UI: React components under `src/ui`, JSX/TSX with functional components.
+- Formatting: Prettier configured via `.prettierrc`.
+- Tests: Jest used; test files collocated (e.g., `*.test.ts`/`*.test.tsx`).
+- Naming: Plugin class `MFDIPlugin`, view `MFDIView`, constants UPPER_SNAKE for types (e.g., `VIEW_TYPE_MFDI`).
+- Obsidian API: Extend `Plugin`, `ItemView`, use `addSettingTab`, `registerView`, etc. Keep strings user-facing and localizable when practical.
+- Build: esbuild config in `esbuild.config.mjs`; Bun used to run scripts.

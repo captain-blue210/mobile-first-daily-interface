@@ -1,7 +1,8 @@
-import { Notice, Plugin, View } from "obsidian";
+import { Plugin, View } from "obsidian";
 import { AppHelper } from "./app-helper";
-import { MFDIView, VIEW_TYPE_MFDI } from "./ui/MDFIView";
 import { DEFAULT_SETTINGS, MFDISettingTab, Settings } from "./settings";
+import { MFDIView, VIEW_TYPE_MFDI } from "./ui/MDFIView";
+import { QuickPostModal } from "./ui/QuickPostModal";
 
 export default class MFDIPlugin extends Plugin {
   appHelper: AppHelper;
@@ -26,8 +27,29 @@ export default class MFDIPlugin extends Plugin {
         await this.attachMFDIView();
       }
     });
-    this.addRibbonIcon("pencil", "Mobile First Daily Interface", async () => {
+    this.addRibbonIcon("pencil", "Mobile Memo", async () => {
       await this.attachMFDIView();
+    });
+
+    // Quick post via modal (ribbon)
+    this.addRibbonIcon("plus", "クイックメモ", async () => {
+      new QuickPostModal(this.app, this.settings).open();
+    });
+
+    this.addCommand({
+      id: "open-mobile-memo",
+      name: "Mobile Memoを開く",
+      callback: async () => {
+        await this.attachMFDIView();
+      },
+    });
+
+    this.addCommand({
+      id: "mobile-memo-quick-post",
+      name: "クイックメモ",
+      callback: async () => {
+        new QuickPostModal(this.app, this.settings).open();
+      },
     });
   }
 
@@ -45,23 +67,25 @@ export default class MFDIPlugin extends Plugin {
       return;
     }
 
-    const targetLeaf =
+    let targetLeaf =
       this.settings.leaf === "left"
-        ? this.app.workspace.getLeftLeaf(false)
+        ? this.app.workspace.getLeftLeaf(true)
         : this.settings.leaf === "current"
         ? this.app.workspace.getActiveViewOfType(View)?.leaf
         : this.settings.leaf === "right"
-        ? this.app.workspace.getRightLeaf(false)
+        ? this.app.workspace.getRightLeaf(true)
         : undefined;
     if (!targetLeaf) {
-      new Notice(`表示リーフの設定が不正です: ${this.settings.leaf}`);
-      return;
+      // Fallback: create/open a main-area leaf
+      targetLeaf = this.app.workspace.getLeaf(true);
     }
 
     await targetLeaf.setViewState({
       type: VIEW_TYPE_MFDI,
       active: true,
     });
+    // Ensure the leaf is visible (especially on mobile where sidebars may be hidden)
+    this.app.workspace.revealLeaf(targetLeaf);
   }
 
   async saveSettings(): Promise<void> {

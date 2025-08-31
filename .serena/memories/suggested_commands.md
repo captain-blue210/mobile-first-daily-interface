@@ -1,0 +1,8 @@
+- Install deps: `bun install`
+- Dev build (watch): `bun run dev`
+- Production build: `bun run build`
+- Run tests: `bun run test`
+- Version bump & update manifest/versions: `bun run version`
+- Set git hooks path: `git config core.hooksPath hooks`
+- Bundle entrypoint: `bun esbuild.config.mjs` (uses `esbuild` config script)
+- Open README for usage: `sed -n '1,200p' README.md`
