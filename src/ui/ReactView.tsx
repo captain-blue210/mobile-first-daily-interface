@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
-import { App, moment, Notice, TFile } from "obsidian";
+import { App, Platform, moment, Notice, TFile } from "obsidian";
 import { AppHelper, Task } from "../app-helper";
 import { sorter } from "../utils/collections";
 import {
@@ -431,6 +431,7 @@ export const ReactView = ({
         onChange={(e) => setInput(e.target.value)}
         minHeight={"8em"}
         resize="vertical"
+        autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
         onKeyUp={handleKeyUp}
       />
       <HStack>

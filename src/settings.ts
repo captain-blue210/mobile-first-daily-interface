@@ -6,6 +6,7 @@ import { mirrorMap } from "./utils/collections";
 export interface Settings {
   leaf: string;
   autoStartOnLaunch: boolean;
+  autoOpenInputOnMobile: boolean;
   blueskyIdentifier: string;
   blueskyAppPassword: string;
   postFormatOption: PostFormatOption;
@@ -14,12 +15,12 @@ export interface Settings {
   appendSectionEnd: string;
   timestampFormat: string;
   autoDemotePostHeading: boolean;
-  autoQuickMemoOnMobile: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   leaf: "left",
   autoStartOnLaunch: false,
+  autoOpenInputOnMobile: false,
   blueskyIdentifier: "",
   blueskyAppPassword: "",
   postFormatOption: "コードブロック",
@@ -28,7 +29,6 @@ export const DEFAULT_SETTINGS: Settings = {
   appendSectionEnd: "",
   timestampFormat: "YYYY-MM-DD HH:mm",
   autoDemotePostHeading: true,
-  autoQuickMemoOnMobile: false,
 };
 
 const leafOptions = ["left", "current", "right"];
@@ -174,14 +174,14 @@ export class MFDISettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("モバイル起動時にクイックメモを自動表示")
+      .setName("モバイル起動時に入力フォームを自動表示")
       .setDesc(
-        "モバイルで起動したときにクイックメモのモーダルを自動で開きます。"
+        "モバイルで起動したときに通常の入力フォームを自動で開きます。"
       )
       .addToggle((tc) => {
-        tc.setValue(this.plugin.settings.autoQuickMemoOnMobile).onChange(
+        tc.setValue(this.plugin.settings.autoOpenInputOnMobile).onChange(
           async (value) => {
-            this.plugin.settings.autoQuickMemoOnMobile = value;
+            this.plugin.settings.autoOpenInputOnMobile = value;
             await this.plugin.saveSettings();
           }
         );
