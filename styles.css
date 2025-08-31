@@ -97,3 +97,36 @@ If your plugin does not need CSS, delete this file.
   border-radius: 16px;
 }
 
+/************************/
+/* Quick Post Modal - iOS Keyboard Support
+/************************/
+
+.mobile-memo-quick-post {
+  transition: max-height 0.3s ease-out;
+}
+
+.modal.keyboard-open {
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.mobile-memo-quick-post-actions {
+  transition: margin-bottom 0.3s ease-out;
+  will-change: margin-bottom;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .modal.keyboard-open {
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+}
+
+/************************/
+/* Hide Modal Header Completely
+/************************/
+
+.modal .modal-header {
+  display: none !important;
+}
+
