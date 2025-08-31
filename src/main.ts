@@ -87,6 +87,10 @@ export default class MFDIPlugin extends Plugin {
       }
     }
 
+    const leafSetting = Platform.isMobile
+      ? this.settings.leafMobile ?? this.settings.leaf ?? "left"
+      : this.settings.leafDesktop ?? this.settings.leaf ?? "left";
+
     let targetLeaf =
       leafSetting === "left"
         ? this.app.workspace.getLeftLeaf(true)
