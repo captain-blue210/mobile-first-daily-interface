@@ -15,6 +15,7 @@ export class QuickPostModal extends Modal {
   private weekdayEl!: HTMLSpanElement;
   private vv?: VisualViewport;
   private adjust?: () => void;
+  private baseHeight = 0;
 
   constructor(app: App, settings: Settings) {
     super(app);
