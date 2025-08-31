@@ -23,3 +23,8 @@ data.json
 
 # Local environment variables
 .env
+
+# Claude Code settings
+.claude/settings.local.json
+
+settings.locl.json

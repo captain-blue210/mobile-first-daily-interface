@@ -51,7 +51,9 @@ export default class MFDIPlugin extends Plugin {
   async attachMFDIView() {
     const existed = this.app.workspace.getLeavesOfType(VIEW_TYPE_MFDI).at(0);
     if (existed) {
-      existed.setViewState({ type: VIEW_TYPE_MFDI, active: true });
+      await existed.setViewState({ type: VIEW_TYPE_MFDI, active: true });
+      // Ensure the leaf becomes visible even if sidebars are hidden (mobile)
+      this.app.workspace.revealLeaf(existed);
       return;
     }
 
