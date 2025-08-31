@@ -107,8 +107,8 @@ export class QuickPostModal extends Modal {
     const vv = window.visualViewport;
     if (vv) {
       const adjust = () => {
-        const offset = window.innerHeight - vv.height + vv.offsetTop;
-        buttons.style.marginBottom = `${offset}px`;
+        const offset = window.innerHeight - (vv.height + vv.offsetTop);
+        buttons.style.marginBottom = `${Math.max(0, offset)}px`;
       };
       vv.addEventListener("resize", adjust);
       vv.addEventListener("scroll", adjust);
