@@ -25,8 +25,8 @@ export class QuickPostModal extends Modal {
   onOpen() {
     const { contentEl, titleEl } = this;
     // Hide modal title per request
-    titleEl.empty();
-    (titleEl as HTMLElement).style.display = "none";
+    titleEl.remove();
+    contentEl.style.paddingTop = "0.5rem";
 
     const wrapper = contentEl.createDiv({ cls: "mobile-memo-quick-post" });
     // Match main view spacing: vertical stack with 0.75rem gap
