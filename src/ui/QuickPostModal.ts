@@ -15,6 +15,7 @@ export class QuickPostModal extends Modal {
   private weekdayEl!: HTMLSpanElement;
   private vv?: VisualViewport;
   private adjust?: () => void;
+  private baseHeight = 0;
 
   constructor(app: App, settings: Settings) {
     super(app);
@@ -106,8 +107,9 @@ export class QuickPostModal extends Modal {
 
     const vv = window.visualViewport;
     if (vv) {
+      this.baseHeight = window.innerHeight;
       const adjust = () => {
-        const offset = window.innerHeight - vv.height + vv.offsetTop;
+        const offset = this.baseHeight - vv.height + vv.offsetTop;
         buttons.style.marginBottom = `${offset}px`;
       };
       vv.addEventListener("resize", adjust);
