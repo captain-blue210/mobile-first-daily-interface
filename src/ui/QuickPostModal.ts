@@ -16,6 +16,9 @@ export class QuickPostModal extends Modal {
   private vv?: VisualViewport;
   private adjust?: () => void;
   private baseHeight = 0;
+  private keyboardHeight = 0;
+  private isKeyboardOpen = false;
+  private resizeTimeout?: number;
 
   constructor(app: App, settings: Settings) {
     super(app);
@@ -25,8 +28,15 @@ export class QuickPostModal extends Modal {
 
   onOpen() {
     const { contentEl, titleEl } = this;
-    // Hide modal title per request
+    // Hide modal title and header completely
     titleEl.remove();
+    
+    // Also remove modal-header if it exists
+    const modalHeader = this.modalEl.querySelector('.modal-header');
+    if (modalHeader) {
+      modalHeader.remove();
+    }
+    
     contentEl.style.paddingTop = "0.5rem";
 
     const wrapper = contentEl.createDiv({ cls: "mobile-memo-quick-post" });
@@ -105,19 +115,7 @@ export class QuickPostModal extends Modal {
     submitBtn.className = "mod-cta";
     submitBtn.addEventListener("click", () => this.submit());
 
-    const vv = window.visualViewport;
-    if (vv) {
-      const baseHeight = window.innerHeight;
-      const adjust = () => {
-        const offset = baseHeight - (vv.height + vv.offsetTop);
-        buttons.style.marginBottom = `${Math.max(0, offset)}px`;
-      };
-      vv.addEventListener("resize", adjust);
-      vv.addEventListener("scroll", adjust);
-      adjust();
-      this.vv = vv;
-      this.adjust = adjust;
-    }
+    this.setupKeyboardHandling(buttons, wrapper);
 
     textarea.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -134,9 +132,102 @@ export class QuickPostModal extends Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
+    this.cleanupKeyboardHandling();
+  }
+
+  private setupKeyboardHandling(buttons: HTMLElement, wrapper: HTMLElement) {
+    this.baseHeight = window.innerHeight;
+    
+    // Visual Viewport API (現代的なアプローチ)
+    const vv = window.visualViewport;
+    if (vv) {
+      const adjustWithVisualViewport = () => {
+        const currentViewportHeight = vv.height;
+        const keyboardHeight = this.baseHeight - currentViewportHeight;
+        const offset = Math.max(0, keyboardHeight);
+        
+        this.updateModalPosition(buttons, wrapper, offset);
+        this.keyboardHeight = offset;
+        this.isKeyboardOpen = offset > 0;
+      };
+      
+      vv.addEventListener("resize", adjustWithVisualViewport);
+      vv.addEventListener("scroll", adjustWithVisualViewport);
+      adjustWithVisualViewport();
+      
+      this.vv = vv;
+      this.adjust = adjustWithVisualViewport;
+    } else {
+      // フォールバック: window.innerHeight変化を監視
+      this.setupFallbackKeyboardDetection(buttons, wrapper);
+    }
+  }
+
+  private setupFallbackKeyboardDetection(buttons: HTMLElement, wrapper: HTMLElement) {
+    const adjustWithInnerHeight = () => {
+      if (this.resizeTimeout) {
+        window.clearTimeout(this.resizeTimeout);
+      }
+      
+      this.resizeTimeout = window.setTimeout(() => {
+        const currentHeight = window.innerHeight;
+        const heightDifference = this.baseHeight - currentHeight;
+        const offset = Math.max(0, heightDifference);
+        
+        this.updateModalPosition(buttons, wrapper, offset);
+        this.keyboardHeight = offset;
+        this.isKeyboardOpen = offset > 100; // 100px閾値でキーボード判定
+      }, 150); // デバウンス
+    };
+    
+    window.addEventListener("resize", adjustWithInnerHeight);
+    window.addEventListener("orientationchange", adjustWithInnerHeight);
+    
+    this.adjust = () => {
+      window.removeEventListener("resize", adjustWithInnerHeight);
+      window.removeEventListener("orientationchange", adjustWithInnerHeight);
+    };
+  }
+
+  private updateModalPosition(buttons: HTMLElement, wrapper: HTMLElement, keyboardOffset: number) {
+    // モーダル全体を上に移動
+    if (keyboardOffset > 0) {
+      // キーボードが表示されている場合
+      const modalEl = this.modalEl;
+      modalEl.style.transform = `translateY(-${keyboardOffset * 0.3}px)`;
+      modalEl.style.transition = "transform 0.3s ease-out";
+      modalEl.classList.add("keyboard-open");
+      
+      // ボタンエリアの追加マージン
+      buttons.style.marginBottom = `${keyboardOffset * 0.2}px`;
+      buttons.style.transition = "margin-bottom 0.3s ease-out";
+      
+      // ラッパーの最大高さ調整
+      const availableHeight = window.innerHeight - keyboardOffset;
+      wrapper.style.maxHeight = `${availableHeight * 0.8}px`;
+      wrapper.style.overflowY = "auto";
+    } else {
+      // キーボードが非表示の場合
+      const modalEl = this.modalEl;
+      modalEl.style.transform = "translateY(0)";
+      modalEl.classList.remove("keyboard-open");
+      
+      buttons.style.marginBottom = "0";
+      wrapper.style.maxHeight = "none";
+      wrapper.style.overflowY = "visible";
+    }
+  }
+
+  private cleanupKeyboardHandling() {
+    if (this.resizeTimeout) {
+      window.clearTimeout(this.resizeTimeout);
+    }
+    
     if (this.vv && this.adjust) {
       this.vv.removeEventListener("resize", this.adjust);
       this.vv.removeEventListener("scroll", this.adjust);
+    } else if (this.adjust) {
+      this.adjust(); // フォールバックのクリーンアップを実行
     }
   }
 
