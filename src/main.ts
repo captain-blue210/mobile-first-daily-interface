@@ -1,4 +1,4 @@
-import { Plugin, View } from "obsidian";
+import { Platform, Plugin, View } from "obsidian";
 import { AppHelper } from "./app-helper";
 import { DEFAULT_SETTINGS, MFDISettingTab, Settings } from "./settings";
 import { MFDIView, VIEW_TYPE_MFDI } from "./ui/MDFIView";
@@ -23,6 +23,9 @@ export default class MFDIPlugin extends Plugin {
 
     this.app.workspace.onLayoutReady(async () => {
       if (this.settings.autoStartOnLaunch) {
+        await this.attachMFDIView();
+      }
+      if (Platform.isMobile && this.settings.autoOpenInputOnMobile) {
         await this.attachMFDIView();
       }
     });

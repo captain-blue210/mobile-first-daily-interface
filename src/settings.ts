@@ -6,6 +6,7 @@ import { mirrorMap } from "./utils/collections";
 export interface Settings {
   leaf: string;
   autoStartOnLaunch: boolean;
+  autoOpenInputOnMobile: boolean;
   blueskyIdentifier: string;
   blueskyAppPassword: string;
   postFormatOption: PostFormatOption;
@@ -19,6 +20,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   leaf: "left",
   autoStartOnLaunch: false,
+  autoOpenInputOnMobile: false,
   blueskyIdentifier: "",
   blueskyAppPassword: "",
   postFormatOption: "コードブロック",
@@ -166,6 +168,20 @@ export class MFDISettingTab extends PluginSettingTab {
         tc.setValue(this.plugin.settings.autoStartOnLaunch).onChange(
           async (value) => {
             this.plugin.settings.autoStartOnLaunch = value;
+            await this.plugin.saveSettings();
+          }
+        );
+      });
+
+    new Setting(containerEl)
+      .setName("モバイル起動時に入力フォームを自動表示")
+      .setDesc(
+        "モバイルで起動したときに通常の入力フォームを自動で開きます。"
+      )
+      .addToggle((tc) => {
+        tc.setValue(this.plugin.settings.autoOpenInputOnMobile).onChange(
+          async (value) => {
+            this.plugin.settings.autoOpenInputOnMobile = value;
             await this.plugin.saveSettings();
           }
         );
