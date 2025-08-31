@@ -1,8 +1,7 @@
-import { Platform, Plugin, View } from "obsidian";
+import { Plugin, View } from "obsidian";
 import { AppHelper } from "./app-helper";
 import { DEFAULT_SETTINGS, MFDISettingTab, Settings } from "./settings";
 import { MFDIView, VIEW_TYPE_MFDI } from "./ui/MDFIView";
-import { QuickPostModal } from "./ui/QuickPostModal";
 
 export default class MFDIPlugin extends Plugin {
   appHelper: AppHelper;
@@ -26,32 +25,15 @@ export default class MFDIPlugin extends Plugin {
       if (this.settings.autoStartOnLaunch) {
         await this.attachMFDIView();
       }
-      if (Platform.isMobile && this.settings.autoQuickMemoOnMobile) {
-        new QuickPostModal(this.app, this.settings).open();
-      }
     });
     this.addRibbonIcon("pencil", "Mobile Memo", async () => {
       await this.attachMFDIView();
     });
-
-    // Quick post via modal (ribbon)
-    this.addRibbonIcon("plus", "クイックメモ", async () => {
-      new QuickPostModal(this.app, this.settings).open();
-    });
-
     this.addCommand({
       id: "open-mobile-memo",
       name: "Mobile Memoを開く",
       callback: async () => {
         await this.attachMFDIView();
-      },
-    });
-
-    this.addCommand({
-      id: "mobile-memo-quick-post",
-      name: "クイックメモ",
-      callback: async () => {
-        new QuickPostModal(this.app, this.settings).open();
       },
     });
   }
