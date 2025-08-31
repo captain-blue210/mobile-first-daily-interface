@@ -13,6 +13,8 @@ export class QuickPostModal extends Modal {
   private date = moment();
   private dateInputEl!: HTMLInputElement;
   private weekdayEl!: HTMLSpanElement;
+  private vv?: VisualViewport;
+  private adjust?: () => void;
 
   constructor(app: App, settings: Settings) {
     super(app);
@@ -31,7 +33,7 @@ export class QuickPostModal extends Modal {
     wrapper.style.display = "flex";
     wrapper.style.flexDirection = "column";
     wrapper.style.gap = "0.75rem";
-    
+
     // Date controls (align with main view)
     const dateRow = wrapper.createDiv({ cls: "mobile-memo-quick-post-date" });
     dateRow.style.display = "flex";
@@ -102,6 +104,19 @@ export class QuickPostModal extends Modal {
     submitBtn.className = "mod-cta";
     submitBtn.addEventListener("click", () => this.submit());
 
+    const vv = window.visualViewport;
+    if (vv) {
+      const adjust = () => {
+        const offset = window.innerHeight - vv.height + vv.offsetTop;
+        buttons.style.marginBottom = `${offset}px`;
+      };
+      vv.addEventListener("resize", adjust);
+      vv.addEventListener("scroll", adjust);
+      adjust();
+      this.vv = vv;
+      this.adjust = adjust;
+    }
+
     textarea.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
@@ -117,6 +132,10 @@ export class QuickPostModal extends Modal {
   onClose() {
     const { contentEl } = this;
     contentEl.empty();
+    if (this.vv && this.adjust) {
+      this.vv.removeEventListener("resize", this.adjust);
+      this.vv.removeEventListener("scroll", this.adjust);
+    }
   }
 
   private getEffectivePostFormat(): PostFormat {
@@ -170,7 +189,7 @@ export class QuickPostModal extends Modal {
     new Notice("投稿しました");
     this.close();
   }
-  
+
   private updateDateControls(updateInput: boolean = true) {
     if (updateInput) {
       this.dateInputEl.value = this.date.format("YYYY-MM-DD");
