@@ -62,23 +62,36 @@ export default class MFDIPlugin extends Plugin {
    * MFDIのViewをアタッチします
    */
   async attachMFDIView() {
-    const existed = this.app.workspace.getLeavesOfType(VIEW_TYPE_MFDI).at(0);
-    if (existed) {
-      await existed.setViewState({ type: VIEW_TYPE_MFDI, active: true });
-      // Ensure the leaf becomes visible even if sidebars are hidden (mobile)
-      this.app.workspace.revealLeaf(existed);
-      return;
-    }
-
     const leafSetting = Platform.isMobile
       ? this.settings.leafMobile ?? this.settings.leaf ?? "left"
       : this.settings.leafDesktop ?? this.settings.leaf ?? "left";
+
+    const existed = this.app.workspace.getLeavesOfType(VIEW_TYPE_MFDI).at(0);
+    if (existed) {
+      // If 'current' is requested and the existing view is not on the active leaf,
+      // relocate by detaching and recreating on the active leaf.
+      if (leafSetting === "current") {
+        const active = this.app.workspace.activeLeaf;
+        if (active && existed !== active) {
+          this.app.workspace.detachLeavesOfType(VIEW_TYPE_MFDI);
+        } else {
+          await existed.setViewState({ type: VIEW_TYPE_MFDI, active: true });
+          this.app.workspace.revealLeaf(existed);
+          return;
+        }
+      } else {
+        await existed.setViewState({ type: VIEW_TYPE_MFDI, active: true });
+        // Ensure the leaf becomes visible even if sidebars are hidden (mobile)
+        this.app.workspace.revealLeaf(existed);
+        return;
+      }
+    }
 
     let targetLeaf =
       leafSetting === "left"
         ? this.app.workspace.getLeftLeaf(true)
         : leafSetting === "current"
-        ? this.app.workspace.getActiveViewOfType(View)?.leaf
+        ? this.app.workspace.activeLeaf ?? undefined
         : leafSetting === "right"
         ? this.app.workspace.getRightLeaf(true)
         : undefined;
