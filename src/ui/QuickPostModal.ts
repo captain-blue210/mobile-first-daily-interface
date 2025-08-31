@@ -28,6 +28,10 @@ export class QuickPostModal extends Modal {
 
   onOpen() {
     const { contentEl, titleEl } = this;
+    
+    // Add specific class to modal element for scoped styling
+    this.modalEl.addClass('quick-post-modal');
+    
     // Hide modal title and header completely
     titleEl.remove();
     
@@ -198,13 +202,15 @@ export class QuickPostModal extends Modal {
       modalEl.style.transition = "transform 0.3s ease-out";
       modalEl.classList.add("keyboard-open");
       
-      // ボタンエリアの追加マージン
-      buttons.style.marginBottom = `${keyboardOffset * 0.2}px`;
+      // ボタンエリアの追加マージン（キーボードとの間隔を広げる）
+      buttons.style.marginBottom = `${keyboardOffset * 0.4 + 20}px`;
       buttons.style.transition = "margin-bottom 0.3s ease-out";
       
-      // ラッパーの最大高さ調整
+      // ラッパーの最大高さ調整（最小高さ制限を追加）
       const availableHeight = window.innerHeight - keyboardOffset;
-      wrapper.style.maxHeight = `${availableHeight * 0.8}px`;
+      const minHeight = 200; // 最小高さ200px確保
+      const maxHeight = Math.max(availableHeight * 0.8, minHeight);
+      wrapper.style.maxHeight = `${maxHeight}px`;
       wrapper.style.overflowY = "auto";
     } else {
       // キーボードが非表示の場合

@@ -123,10 +123,10 @@ If your plugin does not need CSS, delete this file.
 }
 
 /************************/
-/* Hide Modal Header Completely
+/* Hide Modal Header for Quick Post Modal Only
 /************************/
 
-.modal .modal-header {
+.modal.quick-post-modal .modal-header {
   display: none !important;
 }
 
