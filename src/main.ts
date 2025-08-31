@@ -29,6 +29,19 @@ export default class MFDIPlugin extends Plugin {
         await this.attachMFDIView();
       }
     });
+
+    // On mobile, also re-open the input when app returns to foreground
+    if (Platform.isMobile) {
+      const onVisibilityChange = async () => {
+        if (!document.hidden && this.settings.autoOpenInputOnMobile) {
+          await this.attachMFDIView();
+        }
+      };
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      this.register(() =>
+        document.removeEventListener("visibilitychange", onVisibilityChange)
+      );
+    }
     this.addRibbonIcon("pencil", "Mobile Memo", async () => {
       await this.attachMFDIView();
     });
@@ -57,12 +70,16 @@ export default class MFDIPlugin extends Plugin {
       return;
     }
 
+    const leafSetting = Platform.isMobile
+      ? this.settings.leafMobile ?? this.settings.leaf ?? "left"
+      : this.settings.leafDesktop ?? this.settings.leaf ?? "left";
+
     let targetLeaf =
-      this.settings.leaf === "left"
+      leafSetting === "left"
         ? this.app.workspace.getLeftLeaf(true)
-        : this.settings.leaf === "current"
+        : leafSetting === "current"
         ? this.app.workspace.getActiveViewOfType(View)?.leaf
-        : this.settings.leaf === "right"
+        : leafSetting === "right"
         ? this.app.workspace.getRightLeaf(true)
         : undefined;
     if (!targetLeaf) {
@@ -84,7 +101,15 @@ export default class MFDIPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     const currentSettings = await this.loadData();
-    this.settings = { ...DEFAULT_SETTINGS, ...currentSettings };
+    this.settings = { ...DEFAULT_SETTINGS, ...currentSettings } as Settings;
+    // Migration: if old `leaf` exists and new platform-specific settings are empty, adopt it
+    const anySettings = this.settings as any;
+    if (!anySettings.leafDesktop && (anySettings.leaf || anySettings.leaf === "")) {
+      anySettings.leafDesktop = anySettings.leaf || "left";
+    }
+    if (!anySettings.leafMobile && (anySettings.leaf || anySettings.leaf === "")) {
+      anySettings.leafMobile = anySettings.leaf || "left";
+    }
   }
 
   rerenderView() {

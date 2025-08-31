@@ -4,7 +4,10 @@ import { TextComponentEvent } from "./obsutils/settings";
 import { mirrorMap } from "./utils/collections";
 
 export interface Settings {
-  leaf: string;
+  // Deprecated: kept for backward compatibility/migration
+  leaf?: string;
+  leafDesktop: string;
+  leafMobile: string;
   autoStartOnLaunch: boolean;
   autoOpenInputOnMobile: boolean;
   blueskyIdentifier: string;
@@ -18,7 +21,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  leaf: "left",
+  leafDesktop: "left",
+  leafMobile: "left",
   autoStartOnLaunch: false,
   autoOpenInputOnMobile: false,
   blueskyIdentifier: "",
@@ -147,14 +151,27 @@ export class MFDISettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("表示リーフ")
-      .setDesc("MFDI Viewを表示するリーフを指定します。")
+      .setName("表示リーフ（PC）")
+      .setDesc("PC環境でMFDI Viewを表示するリーフを指定します。")
       .addDropdown((tc) =>
         tc
           .addOptions(mirrorMap(leafOptions, (x) => x))
-          .setValue(this.plugin.settings.leaf)
+          .setValue(this.plugin.settings.leafDesktop)
           .onChange(async (value) => {
-            this.plugin.settings.leaf = value;
+            this.plugin.settings.leafDesktop = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("表示リーフ（モバイル）")
+      .setDesc("モバイル環境でMFDI Viewを表示するリーフを指定します。")
+      .addDropdown((tc) =>
+        tc
+          .addOptions(mirrorMap(leafOptions, (x) => x))
+          .setValue(this.plugin.settings.leafMobile)
+          .onChange(async (value) => {
+            this.plugin.settings.leafMobile = value;
             await this.plugin.saveSettings();
           })
       );
