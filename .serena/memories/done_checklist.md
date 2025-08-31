@@ -1,0 +1,5 @@
+- Update user-visible strings where needed (manifest `name`, ribbon tooltip, view title).
+- Build plugin to ensure no TS errors: `bun run build` (may require deps).
+- Verify in Obsidian: ribbon tooltip shows expected name; settings sidebar label matches manifest; view title matches.
+- Run tests if touched logic: `bun run test`.
+- Avoid changing `manifest.id` to prevent plugin folder/name mismatch unless required.

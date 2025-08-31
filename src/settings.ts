@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import MFDIPlugin from "./main";
-import { mirrorMap } from "./utils/collections";
 import { TextComponentEvent } from "./obsutils/settings";
+import { mirrorMap } from "./utils/collections";
 
 export interface Settings {
   leaf: string;
@@ -57,11 +57,11 @@ export class MFDISettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl("h3", { text: "🌍 全体" });
+    containerEl.createEl("h3", { text: "Mobile Memo" });
 
     new Setting(containerEl)
       .setName("投稿形式")
-      .setDesc("MFDIの投稿形式を指定します。")
+      .setDesc("投稿形式を指定します。")
       .addDropdown((tc) =>
         tc
           .addOptions(mirrorMap(Object.keys(postFormatMap), (x) => x))
@@ -116,7 +116,9 @@ export class MFDISettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("投稿日時フォーマット")
-      .setDesc("投稿時に付与する日時のフォーマットを指定します。例: YYYY-MM-DD HH:mm")
+      .setDesc(
+        "投稿時に付与する日時のフォーマットを指定します。例: YYYY-MM-DD HH:mm"
+      )
       .addText((cb) => {
         TextComponentEvent.onChange(cb, async (value) => {
           this.plugin.settings.timestampFormat = value;

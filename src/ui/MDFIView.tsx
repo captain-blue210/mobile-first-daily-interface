@@ -1,9 +1,8 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import * as React from "react";
-import { ReactView } from "./ReactView";
 import { createRoot, Root } from "react-dom/client";
-import { AppHelper } from "../app-helper";
 import { Settings } from "src/settings";
+import { ReactView } from "./ReactView";
 
 export const VIEW_TYPE_MFDI = "mfdi-view";
 
@@ -28,7 +27,7 @@ export class MFDIView extends ItemView {
   }
 
   getDisplayText() {
-    return "Mobile First Daily Interface";
+    return "Mobile Memo";
   }
 
   async onOpen() {
@@ -40,7 +39,8 @@ export class MFDIView extends ItemView {
   }
 
   renderNewView() {
-    this.root = createRoot(this.containerEl.children[1]);
+    // Use contentEl for robustness across desktop/mobile layouts
+    this.root = createRoot(this.contentEl);
     this.root.render(<ReactView app={this.app} settings={this.settings} />);
   }
 
