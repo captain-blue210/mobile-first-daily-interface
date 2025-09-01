@@ -200,7 +200,8 @@ export const ReactView = ({
       setDate(date.clone());
     }
     if (!note) return;
-    await app.workspace.getLeaf(true).openFile(note);
+    const leaf = app.workspace.getLeaf(true);
+    await leaf.openFile(note, { active: true });
   };
   const handleChangeCalendarDate = (
     event: ChangeEvent<HTMLInputElement>
