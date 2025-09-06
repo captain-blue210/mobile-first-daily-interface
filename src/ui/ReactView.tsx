@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
 import { App, Platform, moment, Notice, TFile } from "obsidian";
 import { AppHelper, Task } from "../app-helper";
@@ -384,18 +384,11 @@ export const ReactView = ({
     [posts, tasks, asTask]
   );
 
-  const listRef = useRef<HTMLDivElement>(null);
-
-  const handleFocusInput = () => {
-    listRef.current?.scrollTo({ top: 0 });
-    window.scrollTo({ top: 0 });
-  };
-
   return (
     <Flex
       flexDirection="column"
       gap="0.75rem"
-      height="100vh"
+      height="100%"
       maxWidth="30rem"
       position={"relative"}
       overflow="hidden"
@@ -442,16 +435,11 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box
-        ref={listRef}
-        flexGrow={1}
-        overflowY="auto"
-        overflowX="hidden"
-      >
+      <Box flexGrow={1} overflowY="auto" overflowX="hidden">
         {currentDailyNote && contents}
       </Box>
 
-      <Box bg="var(--background-primary)" paddingTop={2}>
+      <Box bg="var(--background-primary)" p={2} position="sticky" bottom={0}>
         <Textarea
           placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
           value={input}
@@ -460,9 +448,10 @@ export const ReactView = ({
           resize="vertical"
           autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
           onKeyUp={handleKeyUp}
-          onFocus={handleFocusInput}
+          width="100%"
+          marginBottom={2}
         />
-        <HStack>
+        <HStack width="100%">
           <Button
             isDisabled={!canSubmit}
             className={canSubmit ? "mod-cta" : ""}
