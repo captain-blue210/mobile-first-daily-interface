@@ -107,7 +107,10 @@ export const ReactView = ({
     const parsed = parseHeadingSpec(settings.appendSectionSpec);
     const lvl = postFormat.level;
     if (parsed && settings.autoDemotePostHeading) {
-      return { type: "header", level: Math.max(lvl, parsed.level + 1) } as PostFormat;
+      return {
+        type: "header",
+        level: Math.max(lvl, parsed.level + 1),
+      } as PostFormat;
     }
     return postFormat;
   }, [postFormat, settings.appendSectionSpec, settings.autoDemotePostHeading]);
@@ -161,21 +164,26 @@ export const ReactView = ({
               offset: x.offset,
             }))
         : postFormat.type === "list"
-        ? ((
-            await appHelper.getListItems(
+        ? (
+            (await appHelper.getListItems(
               note,
               settings.appendSectionSpec,
               settings.appendSectionEnd,
               settings.timestampFormat
-            )
-          ) ?? [])
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.timestamp, settings.timestampFormat, true),
               message: x.message,
               offset: x.offset,
             }))
             .filter((x) => x.timestamp.isValid())
-        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
+        : (
+            (await appHelper.getHeaders(
+              note,
+              (effectivePostFormat as any).level
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.title, settings.timestampFormat, true),
               message: x.body,
@@ -426,6 +434,10 @@ export const ReactView = ({
         />
       </Box>
 
+      <Box flexGrow={1} overflowY="scroll" overflowX="hidden">
+        {currentDailyNote && contents}
+      </Box>
+
       <Textarea
         placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
         value={input}
@@ -476,10 +488,6 @@ export const ReactView = ({
           />
         </Box>
       </HStack>
-
-      <Box flexGrow={1} overflowY="scroll" overflowX="hidden">
-        {currentDailyNote && contents}
-      </Box>
     </Flex>
   );
 };
