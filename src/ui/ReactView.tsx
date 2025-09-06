@@ -439,61 +439,72 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box flexGrow={1} overflowY="auto" overflowX="hidden">
+      <Box flexGrow={1} overflowY="auto" overflowX="hidden" paddingBottom="12rem">
         {currentDailyNote && contents}
       </Box>
 
-      <Textarea
-        placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        minHeight={"8em"}
-        resize="vertical"
-        autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
-        onKeyUp={handleKeyUp}
-        onFocus={handleFocusInput}
-      />
-      <HStack>
-        <Button
-          isDisabled={!canSubmit}
-          className={canSubmit ? "mod-cta" : ""}
-          minHeight={"2.4em"}
-          maxHeight={"2.4em"}
-          flexGrow={1}
-          cursor={canSubmit ? "pointer" : ""}
-          onClick={handleSubmit}
-        >
-          {asTask ? "タスク追加" : "投稿"}
-        </Button>
-        <Box
-          display="flex"
-          gap="0.5em"
-          padding={4}
-          marginRight={8}
-          borderStyle={"solid"}
-          borderRadius={"10px"}
-          borderColor={"var(--table-border-color)"}
-          borderWidth={"2px"}
-          cursor={"pointer"}
-          _hover={{
-            borderColor: "var(--text-success)",
-            transitionDuration: "0.5s",
-          }}
-          transitionDuration={"0.5s"}
-          onClick={() => setAsTask(!asTask)}
-        >
-          <ChatIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-faint)" : "var(--text-success)"}
-            opacity={asTask ? 0.2 : 1}
-          />
-          <CheckCircleIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-success)" : "var(--text-faint)"}
-            opacity={asTask ? 1 : 0.2}
-          />
-        </Box>
-      </HStack>
+      <Box
+        position="fixed"
+        bottom={0}
+        left="50%"
+        transform="translateX(-50%)"
+        width="100%"
+        maxWidth="30rem"
+        bg="var(--background-primary)"
+        paddingTop={2}
+      >
+        <Textarea
+          placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          minHeight={"8em"}
+          resize="vertical"
+          autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
+          onKeyUp={handleKeyUp}
+          onFocus={handleFocusInput}
+        />
+        <HStack>
+          <Button
+            isDisabled={!canSubmit}
+            className={canSubmit ? "mod-cta" : ""}
+            minHeight={"2.4em"}
+            maxHeight={"2.4em"}
+            flexGrow={1}
+            cursor={canSubmit ? "pointer" : ""}
+            onClick={handleSubmit}
+          >
+            {asTask ? "タスク追加" : "投稿"}
+          </Button>
+          <Box
+            display="flex"
+            gap="0.5em"
+            padding={4}
+            marginRight={8}
+            borderStyle={"solid"}
+            borderRadius={"10px"}
+            borderColor={"var(--table-border-color)"}
+            borderWidth={"2px"}
+            cursor={"pointer"}
+            _hover={{
+              borderColor: "var(--text-success)",
+              transitionDuration: "0.5s",
+            }}
+            transitionDuration={"0.5s"}
+            onClick={() => setAsTask(!asTask)}
+          >
+            <ChatIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-faint)" : "var(--text-success)"}
+              opacity={asTask ? 0.2 : 1}
+            />
+            <CheckCircleIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-success)" : "var(--text-faint)"}
+              opacity={asTask ? 1 : 0.2}
+            />
+          </Box>
+        </HStack>
+      </Box>
     </Flex>
   );
 };
