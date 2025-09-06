@@ -384,13 +384,18 @@ export const ReactView = ({
     [posts, tasks, asTask]
   );
 
+  const handleFocusInput = () => {
+    window.scrollTo({ top: 0 });
+  };
+
   return (
     <Flex
       flexDirection="column"
       gap="0.75rem"
-      height="95%"
+      height="100%"
       maxWidth="30rem"
       position={"relative"}
+      overflow="hidden"
     >
       <HStack justify="center">
         <ChevronLeftIcon
@@ -434,7 +439,7 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box flexGrow={1} overflowY="scroll" overflowX="hidden">
+      <Box flexGrow={1} overflowY="auto" overflowX="hidden">
         {currentDailyNote && contents}
       </Box>
 
@@ -446,6 +451,7 @@ export const ReactView = ({
         resize="vertical"
         autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
         onKeyUp={handleKeyUp}
+        onFocus={handleFocusInput}
       />
       <HStack>
         <Button
