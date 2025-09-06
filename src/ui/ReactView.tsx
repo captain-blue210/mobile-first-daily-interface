@@ -107,7 +107,10 @@ export const ReactView = ({
     const parsed = parseHeadingSpec(settings.appendSectionSpec);
     const lvl = postFormat.level;
     if (parsed && settings.autoDemotePostHeading) {
-      return { type: "header", level: Math.max(lvl, parsed.level + 1) } as PostFormat;
+      return {
+        type: "header",
+        level: Math.max(lvl, parsed.level + 1),
+      } as PostFormat;
     }
     return postFormat;
   }, [postFormat, settings.appendSectionSpec, settings.autoDemotePostHeading]);
@@ -161,21 +164,26 @@ export const ReactView = ({
               offset: x.offset,
             }))
         : postFormat.type === "list"
-        ? ((
-            await appHelper.getListItems(
+        ? (
+            (await appHelper.getListItems(
               note,
               settings.appendSectionSpec,
               settings.appendSectionEnd,
               settings.timestampFormat
-            )
-          ) ?? [])
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.timestamp, settings.timestampFormat, true),
               message: x.message,
               offset: x.offset,
             }))
             .filter((x) => x.timestamp.isValid())
-        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
+        : (
+            (await appHelper.getHeaders(
+              note,
+              (effectivePostFormat as any).level
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.title, settings.timestampFormat, true),
               message: x.body,
@@ -380,9 +388,10 @@ export const ReactView = ({
     <Flex
       flexDirection="column"
       gap="0.75rem"
-      height="95%"
+      height="100%"
       maxWidth="30rem"
       position={"relative"}
+      overflow="hidden"
     >
       <HStack justify="center">
         <ChevronLeftIcon
@@ -426,59 +435,63 @@ export const ReactView = ({
         />
       </Box>
 
-      <Textarea
-        placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        minHeight={"8em"}
-        resize="vertical"
-        autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
-        onKeyUp={handleKeyUp}
-      />
-      <HStack>
-        <Button
-          isDisabled={!canSubmit}
-          className={canSubmit ? "mod-cta" : ""}
-          minHeight={"2.4em"}
-          maxHeight={"2.4em"}
-          flexGrow={1}
-          cursor={canSubmit ? "pointer" : ""}
-          onClick={handleSubmit}
-        >
-          {asTask ? "タスク追加" : "投稿"}
-        </Button>
-        <Box
-          display="flex"
-          gap="0.5em"
-          padding={4}
-          marginRight={8}
-          borderStyle={"solid"}
-          borderRadius={"10px"}
-          borderColor={"var(--table-border-color)"}
-          borderWidth={"2px"}
-          cursor={"pointer"}
-          _hover={{
-            borderColor: "var(--text-success)",
-            transitionDuration: "0.5s",
-          }}
-          transitionDuration={"0.5s"}
-          onClick={() => setAsTask(!asTask)}
-        >
-          <ChatIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-faint)" : "var(--text-success)"}
-            opacity={asTask ? 0.2 : 1}
-          />
-          <CheckCircleIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-success)" : "var(--text-faint)"}
-            opacity={asTask ? 1 : 0.2}
-          />
-        </Box>
-      </HStack>
-
-      <Box flexGrow={1} overflowY="scroll" overflowX="hidden">
+      <Box flexGrow={1} overflowY="auto" overflowX="hidden">
         {currentDailyNote && contents}
+      </Box>
+
+      <Box bg="var(--background-primary)" p={2} position="sticky" bottom={0}>
+        <Textarea
+          placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          minHeight={"8em"}
+          resize="vertical"
+          autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
+          onKeyUp={handleKeyUp}
+          width="100%"
+          marginBottom={2}
+        />
+        <HStack width="100%">
+          <Button
+            isDisabled={!canSubmit}
+            className={canSubmit ? "mod-cta" : ""}
+            minHeight={"2.4em"}
+            maxHeight={"2.4em"}
+            flexGrow={1}
+            cursor={canSubmit ? "pointer" : ""}
+            onClick={handleSubmit}
+          >
+            {asTask ? "タスク追加" : "投稿"}
+          </Button>
+          <Box
+            display="flex"
+            gap="0.5em"
+            padding={4}
+            marginRight={8}
+            borderStyle={"solid"}
+            borderRadius={"10px"}
+            borderColor={"var(--table-border-color)"}
+            borderWidth={"2px"}
+            cursor={"pointer"}
+            _hover={{
+              borderColor: "var(--text-success)",
+              transitionDuration: "0.5s",
+            }}
+            transitionDuration={"0.5s"}
+            onClick={() => setAsTask(!asTask)}
+          >
+            <ChatIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-faint)" : "var(--text-success)"}
+              opacity={asTask ? 0.2 : 1}
+            />
+            <CheckCircleIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-success)" : "var(--text-faint)"}
+              opacity={asTask ? 1 : 0.2}
+            />
+          </Box>
+        </HStack>
       </Box>
     </Flex>
   );
