@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
 import { App, Platform, moment, Notice, TFile } from "obsidian";
 import { AppHelper, Task } from "../app-helper";
@@ -384,7 +384,10 @@ export const ReactView = ({
     [posts, tasks, asTask]
   );
 
+  const listRef = useRef<HTMLDivElement>(null);
+
   const handleFocusInput = () => {
+    listRef.current?.scrollTo({ top: 0 });
     window.scrollTo({ top: 0 });
   };
 
@@ -392,7 +395,7 @@ export const ReactView = ({
     <Flex
       flexDirection="column"
       gap="0.75rem"
-      height="100%"
+      height="100vh"
       maxWidth="30rem"
       position={"relative"}
       overflow="hidden"
@@ -439,20 +442,16 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box flexGrow={1} overflowY="auto" overflowX="hidden" paddingBottom="12rem">
+      <Box
+        ref={listRef}
+        flexGrow={1}
+        overflowY="auto"
+        overflowX="hidden"
+      >
         {currentDailyNote && contents}
       </Box>
 
-      <Box
-        position="fixed"
-        bottom={0}
-        left="50%"
-        transform="translateX(-50%)"
-        width="100%"
-        maxWidth="30rem"
-        bg="var(--background-primary)"
-        paddingTop={2}
-      >
+      <Box bg="var(--background-primary)" paddingTop={2}>
         <Textarea
           placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
           value={input}
