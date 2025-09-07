@@ -1,14 +1,3 @@
-import * as React from "react";
-import {
-  ChangeEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
-import { App, Platform, moment, Notice, TFile } from "obsidian";
-import { AppHelper, Task } from "../app-helper";
-import { sorter } from "../utils/collections";
 import {
   ChatIcon,
   CheckCircleIcon,
@@ -16,18 +5,24 @@ import {
   ChevronRightIcon,
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
-import { CSSTransition, TransitionGroup } from "react-transition-group";
+import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
 import { Moment } from "moment";
-import { PostCardView } from "./PostCardView";
-import { TaskView } from "./TaskView";
-import { replaceDayToJa } from "../utils/strings";
-import { PostFormat, Settings, postFormatMap } from "../settings";
+import { App, Notice, Platform, TFile, moment } from "obsidian";
+import * as React from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { CSSTransition, TransitionGroup } from "react-transition-group";
 import {
   ensureDailyNote,
   getDailyNoteFile,
   resolveDailyNotePath,
 } from "src/obsutils/daily-notes";
 import { parseHeadingSpec } from "src/utils/markdown";
+import { AppHelper, Task } from "../app-helper";
+import { PostFormat, Settings, postFormatMap } from "../settings";
+import { sorter } from "../utils/collections";
+import { replaceDayToJa } from "../utils/strings";
+import { PostCardView } from "./PostCardView";
+import { TaskView } from "./TaskView";
 
 export interface Post {
   timestamp: Moment;
@@ -82,6 +77,9 @@ export const ReactView = ({
   // デイリーノートが存在しないとnull
   const [currentDailyNote, setCurrentDailyNote] = useState<TFile | null>(null);
   const [input, setInput] = useState("");
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const footerRef = useRef<HTMLDivElement | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
@@ -92,7 +90,17 @@ export const ReactView = ({
           ((window.visualViewport?.height ?? window.innerHeight) +
             (window.visualViewport?.offsetTop ?? 0))
         : 0,
+    occluded:
+      typeof window !== "undefined"
+        ? Math.max(
+            0,
+            window.innerHeight -
+              (window.visualViewport?.height ?? window.innerHeight) -
+              (window.visualViewport?.offsetTop ?? 0)
+          )
+        : 0,
   }));
+  const [footerHeight, setFooterHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
@@ -212,23 +220,74 @@ export const ReactView = ({
   };
 
   useEffect(() => {
+    let timeoutId: number;
+    
     const updateViewport = () => {
-      const vv = window.visualViewport;
-      const bottom =
-        window.innerHeight -
-        ((vv?.height ?? window.innerHeight) + (vv?.offsetTop ?? 0));
+      // iOS でのタイミング問題を解決するためにデバウンス処理を追加
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        const vv = window.visualViewport;
+        const vh = vv?.height ?? window.innerHeight;
+        const top = vv?.offsetTop ?? 0;
+        const occluded = Math.max(0, window.innerHeight - vh - top);
 
-      setViewport({ bottom });
+        setViewport({
+          bottom: window.innerHeight - (vh + top),
+          occluded,
+        });
+      }, 10);
     };
-
+    
     updateViewport();
-    window.visualViewport?.addEventListener("resize", updateViewport);
-    window.visualViewport?.addEventListener("scroll", updateViewport);
+    
+    // より包括的なイベント監視
+    const events = ['resize', 'scroll'];
+    events.forEach(event => {
+      window.visualViewport?.addEventListener(event, updateViewport);
+    });
+    
+    // iOS 特有のオリエンテーション変化も監視
+    window.addEventListener('orientationchange', updateViewport);
+    
     return () => {
-      window.visualViewport?.removeEventListener("resize", updateViewport);
-      window.visualViewport?.removeEventListener("scroll", updateViewport);
+      clearTimeout(timeoutId);
+      events.forEach(event => {
+        window.visualViewport?.removeEventListener(event, updateViewport);
+      });
+      window.removeEventListener('orientationchange', updateViewport);
     };
   }, []);
+
+  // When focusing input on mobile, ensure it is scrolled into view
+  useEffect(() => {
+    if (!Platform.isMobile) return;
+    if (!isInputFocused) return;
+    // iOS でキーボード表示が完了するまで待機時間を延長
+    const id = window.setTimeout(() => {
+      textareaRef.current?.scrollIntoView({
+        block: "end", // キーボード上部に確実に配置
+        behavior: "smooth",
+      });
+    }, 150); // タイミングを150msに延長
+    return () => window.clearTimeout(id);
+  }, [isInputFocused, viewport.occluded]); // viewport.occluded の変化も監視
+
+  // Measure footer height to pad the scroll area so that history is not hidden behind sticky footer
+  useEffect(() => {
+    const measure = () => setFooterHeight(footerRef.current?.offsetHeight ?? 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (footerRef.current) ro.observe(footerRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  useEffect(() => {
+    // Re-measure when viewport occlusion changes (keyboard show/hide)
+    setFooterHeight(footerRef.current?.offsetHeight ?? 0);
+  }, [viewport.occluded, asTask, input]);
 
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
@@ -344,7 +403,6 @@ export const ReactView = ({
             borderRadius={"10px"}
             borderColor={"var(--table-border-color)"}
             borderWidth={"2px"}
-            boxShadow={"0 1px 1px 0"}
             marginY={8}
             minHeight={50}
           >
@@ -372,7 +430,6 @@ export const ReactView = ({
             borderRadius={"10px"}
             borderColor={"var(--table-border-color)"}
             borderWidth={"2px"}
-            boxShadow={"0 1px 1px 0"}
             marginY={8}
             minHeight={50}
           >
@@ -420,12 +477,11 @@ export const ReactView = ({
     <Flex
       flexDirection="column"
       gap="0.75rem"
+      height={"100%"}
       maxWidth="30rem"
-      position="fixed"
-      top={0}
-      left={0}
-      right={0}
-      bottom={viewport.bottom}
+      width={"100%"}
+      mx={"auto"}
+      position="relative"
       overflow="hidden"
     >
       <HStack justify="center">
@@ -470,23 +526,92 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box flex="1 1 auto" overflowY="auto" overflowX="hidden">
+      <Box
+        flex="1 1 auto"
+        overflowY="auto"
+        overflowX="hidden"
+        minH={0}
+        style={{
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+        }}
+        paddingBottom={footerHeight}
+      >
         {currentDailyNote && contents}
       </Box>
 
-      <Box bg="var(--background-primary)" p={2} flexShrink={0} width="100%">
+      <Box
+        ref={footerRef}
+        position="sticky"
+        bottom={0}
+        transform={
+          Platform.isMobile && (isInputFocused || (viewport.occluded ?? 0) > 50)
+            ? (() => {
+                // キーボードの高さよりさらに20px上に配置して完全に密着
+                const translateY = -(viewport.occluded + 20);
+                console.log('[KEYBOARD DEBUG]', {
+                  occluded: viewport.occluded,
+                  translateY,
+                  windowHeight: window.innerHeight,
+                  visualViewportHeight: window.visualViewport?.height,
+                  isInputFocused
+                });
+                return `translateY(${translateY}px)`;
+              })()
+            : 'none'
+        }
+        zIndex={1}
+        bg="var(--background-primary)"
+        p={isInputFocused && Platform.isMobile ? 0 : 2}
+        // iOS でのスペーシング完全除去
+        sx={isInputFocused && Platform.isMobile ? {
+          margin: 0,
+          border: 'none',
+          outline: 'none',
+          boxSizing: 'border-box'
+        } : {}}
+        pb={
+          Platform.isMobile &&
+          (isInputFocused || (viewport.occluded ?? 0) > 50) // 閾値を100から50に下げて、より敏感に反応
+            ? 0
+            : "env(safe-area-inset-bottom, 0px)"
+        }
+        flexShrink={0}
+        width="100%"
+      >
         <Textarea
-          placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
+          placeholder={asTask ? "タスクを入力" : "メッセージを入力してください"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           minHeight={"8em"}
           resize="vertical"
           autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
           onKeyUp={handleKeyUp}
+          onFocus={() => setIsInputFocused(true)}
+          onBlur={() => setIsInputFocused(false)}
+          ref={textareaRef}
           width="100%"
-          marginBottom={2}
+          marginBottom={isInputFocused && Platform.isMobile ? 0 : 2}
+          // iOS でのスペース除去のための強制スタイル
+          sx={isInputFocused && Platform.isMobile ? {
+            border: 'none',
+            boxShadow: 'none',
+            _focus: {
+              border: 'none',
+              boxShadow: 'none'
+            }
+          } : {}}
         />
-        <HStack width="100%">
+        <HStack 
+          width="100%" 
+          minHeight="3.5em" 
+          alignItems="center"
+          spacing={isInputFocused && Platform.isMobile ? 1 : 2}
+          sx={isInputFocused && Platform.isMobile ? {
+            margin: 0,
+            padding: 0
+          } : {}}
+        >
           <Button
             isDisabled={!canSubmit}
             className={canSubmit ? "mod-cta" : ""}
@@ -496,13 +621,14 @@ export const ReactView = ({
             cursor={canSubmit ? "pointer" : ""}
             onClick={handleSubmit}
           >
-            {asTask ? "タスク追加" : "投稿"}
+            {asTask ? "タスク追加" : "送信"}
           </Button>
           <Box
             display="flex"
             gap="0.5em"
-            padding={4}
-            marginRight={8}
+            padding={isInputFocused && Platform.isMobile ? 1 : 4}
+            margin={isInputFocused && Platform.isMobile ? 0 : undefined}
+            marginRight={isInputFocused && Platform.isMobile ? 2 : 8}
             borderStyle={"solid"}
             borderRadius={"10px"}
             borderColor={"var(--table-border-color)"}

@@ -1,18 +1,18 @@
-import * as React from "react";
-import { useEffect, useState } from "react";
-import { Notice } from "obsidian";
+import { CopyIcon, createIcon, TimeIcon } from "@chakra-ui/icons";
 import { Box, HStack } from "@chakra-ui/react";
 import Markdown from "marked-react";
-import { CopyIcon, TimeIcon, createIcon } from "@chakra-ui/icons";
-import { pickUrls, replaceDayToJa } from "../utils/strings";
+import { Notice } from "obsidian";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import { postToBluesky } from "../clients/bluesky";
+import { Settings } from "../settings";
 import { createMeta, HTMLMeta, ImageMeta, TwitterMeta } from "../utils/meta";
+import { pickUrls, replaceDayToJa } from "../utils/strings";
 import { isPresent } from "../utils/types";
 import { HTMLCard } from "./HTMLCard";
 import { ImageCard } from "./ImageCard";
-import { TwitterCard } from "./TwitterCard";
-import { postToBluesky } from "../clients/bluesky";
-import { Settings } from "../settings";
 import { Post } from "./ReactView";
+import { TwitterCard } from "./TwitterCard";
 
 const BlueskyIcon = createIcon({
   displayName: "BlueskyIcon",
@@ -89,7 +89,6 @@ export const PostCardView = ({
       borderRadius={"10px"}
       borderColor={"var(--table-border-color)"}
       borderWidth={"2px"}
-      boxShadow={"0 1px 1px 0"}
       marginY={8}
     >
       <Box
