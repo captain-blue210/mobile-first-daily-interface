@@ -216,10 +216,17 @@ export const ReactView = ({
 
   useEffect(() => {
     const updateViewportHeight = () => {
-      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const vv = window.visualViewport;
+      const vh = vv?.height ?? window.innerHeight;
+      const top = vv?.offsetTop ?? 0;
+
+      window.scrollTo({ top: 0 });
+
       if (rootRef.current) {
         rootRef.current.style.height = `${vh}px`;
+        rootRef.current.style.top = `${top}px`;
       }
+
       if (inputRef.current) {
         setInputHeight(inputRef.current.offsetHeight);
       }
@@ -227,8 +234,10 @@ export const ReactView = ({
 
     updateViewportHeight();
     window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
     return () => {
       window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
     };
   }, []);
 
@@ -425,7 +434,10 @@ export const ReactView = ({
       gap="0.75rem"
       height="100vh"
       maxWidth="30rem"
-      position={"relative"}
+      position="fixed"
+      top={0}
+      left={0}
+      right={0}
       overflow="hidden"
     >
       <HStack justify="center">
