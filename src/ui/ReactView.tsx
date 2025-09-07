@@ -232,9 +232,9 @@ export const ReactView = ({
         const top = vv?.offsetTop ?? 0;
         const occluded = Math.max(0, window.innerHeight - vh - top);
 
-        setViewport({
-          bottom: window.innerHeight - (vh + top),
-          occluded,
+        setViewport((prev) => {
+          const bottom = occluded <= prev.bottom + 10 ? occluded : prev.bottom;
+          return { bottom, occluded };
         });
       }, 10);
     };
@@ -565,11 +565,7 @@ export const ReactView = ({
               }
             : {}
         }
-        pb={
-          Platform.isMobile && keyboardHeight > 0
-            ? 0
-            : "env(safe-area-inset-bottom, 0px)"
-        }
+        pb={Platform.isMobile && keyboardHeight > 0 ? 0 : viewport.bottom}
         flexShrink={0}
         width="100%"
       >
