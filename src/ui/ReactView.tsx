@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useLayoutEffect,
   useState,
 } from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
@@ -88,8 +87,6 @@ export const ReactView = ({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLDivElement>(null);
-  const [inputHeight, setInputHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
@@ -208,12 +205,6 @@ export const ReactView = ({
     setTasks((await appHelper.getTasks(note)) ?? []);
   };
 
-  useLayoutEffect(() => {
-    if (inputRef.current) {
-      setInputHeight(inputRef.current.offsetHeight);
-    }
-  }, [input, asTask]);
-
   useEffect(() => {
     const updateViewportHeight = () => {
       const vv = window.visualViewport;
@@ -225,10 +216,6 @@ export const ReactView = ({
       if (rootRef.current) {
         rootRef.current.style.height = `${vh}px`;
         rootRef.current.style.top = `${top}px`;
-      }
-
-      if (inputRef.current) {
-        setInputHeight(inputRef.current.offsetHeight);
       }
     };
 
@@ -482,24 +469,11 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box
-        flexGrow={1}
-        overflowY="auto"
-        overflowX="hidden"
-        paddingBottom={inputHeight}
-      >
+      <Box flex="1 1 auto" overflowY="auto" overflowX="hidden">
         {currentDailyNote && contents}
       </Box>
 
-      <Box
-        ref={inputRef}
-        bg="var(--background-primary)"
-        p={2}
-        position="absolute"
-        left={0}
-        right={0}
-        bottom={0}
-      >
+      <Box bg="var(--background-primary)" p={2} flexShrink={0} width="100%">
         <Textarea
           placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
           value={input}
