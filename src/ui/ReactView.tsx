@@ -1,5 +1,12 @@
 import * as React from "react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+  useState,
+} from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
 import { App, Platform, moment, Notice, TFile } from "obsidian";
 import { AppHelper, Task } from "../app-helper";
@@ -80,6 +87,9 @@ export const ReactView = ({
   const [posts, setPosts] = useState<Post[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
+  const [inputHeight, setInputHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
@@ -197,6 +207,30 @@ export const ReactView = ({
   const updateTasks = async (note: TFile) => {
     setTasks((await appHelper.getTasks(note)) ?? []);
   };
+
+  useLayoutEffect(() => {
+    if (inputRef.current) {
+      setInputHeight(inputRef.current.offsetHeight);
+    }
+  }, [input, asTask]);
+
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      if (rootRef.current) {
+        rootRef.current.style.height = `${vh}px`;
+      }
+      if (inputRef.current) {
+        setInputHeight(inputRef.current.offsetHeight);
+      }
+    };
+
+    updateViewportHeight();
+    window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+    };
+  }, []);
 
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
@@ -386,9 +420,10 @@ export const ReactView = ({
 
   return (
     <Flex
+      ref={rootRef}
       flexDirection="column"
       gap="0.75rem"
-      height="100%"
+      height="100vh"
       maxWidth="30rem"
       position={"relative"}
       overflow="hidden"
@@ -435,11 +470,24 @@ export const ReactView = ({
         />
       </Box>
 
-      <Box flexGrow={1} overflowY="auto" overflowX="hidden">
+      <Box
+        flexGrow={1}
+        overflowY="auto"
+        overflowX="hidden"
+        paddingBottom={inputHeight}
+      >
         {currentDailyNote && contents}
       </Box>
 
-      <Box bg="var(--background-primary)" p={2} position="sticky" bottom={0}>
+      <Box
+        ref={inputRef}
+        bg="var(--background-primary)"
+        p={2}
+        position="absolute"
+        left={0}
+        right={0}
+        bottom={0}
+      >
         <Textarea
           placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
           value={input}
