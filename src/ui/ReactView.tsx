@@ -86,13 +86,11 @@ export const ReactView = ({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
   const [viewport, setViewport] = useState(() => ({
-    height:
+    bottom:
       typeof window !== "undefined"
-        ? window.visualViewport?.height ?? window.innerHeight
-        : 0,
-    top:
-      typeof window !== "undefined"
-        ? window.visualViewport?.offsetTop ?? 0
+        ? window.innerHeight -
+          ((window.visualViewport?.height ?? window.innerHeight) +
+            (window.visualViewport?.offsetTop ?? 0))
         : 0,
   }));
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
@@ -216,11 +214,11 @@ export const ReactView = ({
   useEffect(() => {
     const updateViewport = () => {
       const vv = window.visualViewport;
-      const vh = vv?.height ?? window.innerHeight;
-      const top = vv?.offsetTop ?? 0;
+      const bottom =
+        window.innerHeight -
+        ((vv?.height ?? window.innerHeight) + (vv?.offsetTop ?? 0));
 
-      window.scrollTo({ top: 0 });
-      setViewport({ height: vh, top });
+      setViewport({ bottom });
     };
 
     updateViewport();
@@ -422,12 +420,12 @@ export const ReactView = ({
     <Flex
       flexDirection="column"
       gap="0.75rem"
-      height={viewport.height}
       maxWidth="30rem"
       position="fixed"
-      top={viewport.top}
+      top={0}
       left={0}
       right={0}
+      bottom={viewport.bottom}
       overflow="hidden"
     >
       <HStack justify="center">
