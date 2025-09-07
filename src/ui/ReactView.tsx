@@ -100,6 +100,7 @@ export const ReactView = ({
           )
         : 0,
   }));
+  const keyboardHeight = Math.max(0, viewport.occluded - viewport.bottom);
   const [footerHeight, setFooterHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
@@ -221,7 +222,7 @@ export const ReactView = ({
 
   useEffect(() => {
     let timeoutId: number;
-    
+
     const updateViewport = () => {
       // iOS でのタイミング問題を解決するためにデバウンス処理を追加
       clearTimeout(timeoutId);
@@ -231,46 +232,47 @@ export const ReactView = ({
         const top = vv?.offsetTop ?? 0;
         const occluded = Math.max(0, window.innerHeight - vh - top);
 
-        setViewport({
-          bottom: window.innerHeight - (vh + top),
-          occluded,
+        setViewport((prev) => {
+          const bottom = occluded <= prev.bottom + 10 ? occluded : prev.bottom;
+          return { bottom, occluded };
         });
       }, 10);
     };
-    
+
     updateViewport();
-    
+
     // より包括的なイベント監視
-    const events = ['resize', 'scroll'];
-    events.forEach(event => {
+    const events = ["resize", "scroll"];
+    events.forEach((event) => {
       window.visualViewport?.addEventListener(event, updateViewport);
     });
-    
+
     // iOS 特有のオリエンテーション変化も監視
-    window.addEventListener('orientationchange', updateViewport);
-    
+    window.addEventListener("orientationchange", updateViewport);
+
     return () => {
       clearTimeout(timeoutId);
-      events.forEach(event => {
+      events.forEach((event) => {
         window.visualViewport?.removeEventListener(event, updateViewport);
       });
-      window.removeEventListener('orientationchange', updateViewport);
+      window.removeEventListener("orientationchange", updateViewport);
     };
   }, []);
 
-  // When focusing input on mobile, ensure it is scrolled into view
+  // Scroll to bottom when focusing input so footer remains visible
   useEffect(() => {
     if (!Platform.isMobile) return;
     if (!isInputFocused) return;
-    // iOS でキーボード表示が完了するまで待機時間を延長
+    // Skip if keyboard is already covering the viewport
+    if (keyboardHeight > 0) return;
     const id = window.setTimeout(() => {
-      textareaRef.current?.scrollIntoView({
-        block: "end", // キーボード上部に確実に配置
+      footerRef.current?.scrollIntoView({
+        block: "end",
         behavior: "smooth",
       });
-    }, 150); // タイミングを150msに延長
+    }, 150);
     return () => window.clearTimeout(id);
-  }, [isInputFocused, viewport.occluded]); // viewport.occluded の変化も監視
+  }, [isInputFocused, keyboardHeight]);
 
   // Measure footer height to pad the scroll area so that history is not hidden behind sticky footer
   useEffect(() => {
@@ -287,7 +289,7 @@ export const ReactView = ({
   useEffect(() => {
     // Re-measure when viewport occlusion changes (keyboard show/hide)
     setFooterHeight(footerRef.current?.offsetHeight ?? 0);
-  }, [viewport.occluded, asTask, input]);
+  }, [keyboardHeight, asTask, input]);
 
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
@@ -535,7 +537,7 @@ export const ReactView = ({
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
         }}
-        paddingBottom={footerHeight}
+        paddingBottom={footerHeight + keyboardHeight}
       >
         {currentDailyNote && contents}
       </Box>
@@ -545,37 +547,25 @@ export const ReactView = ({
         position="sticky"
         bottom={0}
         transform={
-          Platform.isMobile && (isInputFocused || (viewport.occluded ?? 0) > 50)
-            ? (() => {
-                // キーボードの高さよりさらに20px上に配置して完全に密着
-                const translateY = -(viewport.occluded + 20);
-                console.log('[KEYBOARD DEBUG]', {
-                  occluded: viewport.occluded,
-                  translateY,
-                  windowHeight: window.innerHeight,
-                  visualViewportHeight: window.visualViewport?.height,
-                  isInputFocused
-                });
-                return `translateY(${translateY}px)`;
-              })()
-            : 'none'
+          Platform.isMobile && keyboardHeight > 0
+            ? `translateY(${-keyboardHeight}px)`
+            : "none"
         }
         zIndex={1}
         bg="var(--background-primary)"
         p={isInputFocused && Platform.isMobile ? 0 : 2}
         // iOS でのスペーシング完全除去
-        sx={isInputFocused && Platform.isMobile ? {
-          margin: 0,
-          border: 'none',
-          outline: 'none',
-          boxSizing: 'border-box'
-        } : {}}
-        pb={
-          Platform.isMobile &&
-          (isInputFocused || (viewport.occluded ?? 0) > 50) // 閾値を100から50に下げて、より敏感に反応
-            ? 0
-            : "env(safe-area-inset-bottom, 0px)"
+        sx={
+          isInputFocused && Platform.isMobile
+            ? {
+                margin: 0,
+                border: "none",
+                outline: "none",
+                boxSizing: "border-box",
+              }
+            : {}
         }
+        pb={Platform.isMobile && keyboardHeight > 0 ? 0 : viewport.bottom}
         flexShrink={0}
         width="100%"
       >
@@ -593,24 +583,32 @@ export const ReactView = ({
           width="100%"
           marginBottom={isInputFocused && Platform.isMobile ? 0 : 2}
           // iOS でのスペース除去のための強制スタイル
-          sx={isInputFocused && Platform.isMobile ? {
-            border: 'none',
-            boxShadow: 'none',
-            _focus: {
-              border: 'none',
-              boxShadow: 'none'
-            }
-          } : {}}
+          sx={
+            isInputFocused && Platform.isMobile
+              ? {
+                  border: "none",
+                  boxShadow: "none",
+                  _focus: {
+                    border: "none",
+                    boxShadow: "none",
+                  },
+                }
+              : {}
+          }
         />
-        <HStack 
-          width="100%" 
-          minHeight="3.5em" 
+        <HStack
+          width="100%"
+          minHeight="3.5em"
           alignItems="center"
           spacing={isInputFocused && Platform.isMobile ? 1 : 2}
-          sx={isInputFocused && Platform.isMobile ? {
-            margin: 0,
-            padding: 0
-          } : {}}
+          sx={
+            isInputFocused && Platform.isMobile
+              ? {
+                  margin: 0,
+                  padding: 0,
+                }
+              : {}
+          }
         >
           <Button
             isDisabled={!canSubmit}
