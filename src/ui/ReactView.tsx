@@ -3,7 +3,6 @@ import {
   ChangeEvent,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
@@ -86,7 +85,16 @@ export const ReactView = ({
   const [posts, setPosts] = useState<Post[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState(() => ({
+    height:
+      typeof window !== "undefined"
+        ? window.visualViewport?.height ?? window.innerHeight
+        : 0,
+    top:
+      typeof window !== "undefined"
+        ? window.visualViewport?.offsetTop ?? 0
+        : 0,
+  }));
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
@@ -206,25 +214,21 @@ export const ReactView = ({
   };
 
   useEffect(() => {
-    const updateViewportHeight = () => {
+    const updateViewport = () => {
       const vv = window.visualViewport;
       const vh = vv?.height ?? window.innerHeight;
       const top = vv?.offsetTop ?? 0;
 
       window.scrollTo({ top: 0 });
-
-      if (rootRef.current) {
-        rootRef.current.style.height = `${vh}px`;
-        rootRef.current.style.top = `${top}px`;
-      }
+      setViewport({ height: vh, top });
     };
 
-    updateViewportHeight();
-    window.visualViewport?.addEventListener("resize", updateViewportHeight);
-    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
+    updateViewport();
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    window.visualViewport?.addEventListener("scroll", updateViewport);
     return () => {
-      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
-      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+      window.visualViewport?.removeEventListener("scroll", updateViewport);
     };
   }, []);
 
@@ -416,13 +420,12 @@ export const ReactView = ({
 
   return (
     <Flex
-      ref={rootRef}
       flexDirection="column"
       gap="0.75rem"
-      height="100vh"
+      height={viewport.height}
       maxWidth="30rem"
       position="fixed"
-      top={0}
+      top={viewport.top}
       left={0}
       right={0}
       overflow="hidden"
