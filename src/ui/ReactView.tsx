@@ -258,19 +258,20 @@ export const ReactView = ({
     };
   }, []);
 
-  // When focusing input on mobile, ensure it is scrolled into view
+  // Scroll to bottom when focusing input so footer remains visible
   useEffect(() => {
     if (!Platform.isMobile) return;
     if (!isInputFocused) return;
-    // iOS でキーボード表示が完了するまで待機時間を延長
+    // Skip if keyboard is already covering the viewport
+    if ((viewport.occluded ?? 0) > 0) return;
     const id = window.setTimeout(() => {
-      textareaRef.current?.scrollIntoView({
-        block: "end", // キーボード上部に確実に配置
+      footerRef.current?.scrollIntoView({
+        block: "end",
         behavior: "smooth",
       });
-    }, 150); // タイミングを150msに延長
+    }, 150);
     return () => window.clearTimeout(id);
-  }, [isInputFocused, viewport.occluded]); // viewport.occluded の変化も監視
+  }, [isInputFocused, viewport.occluded]);
 
   // Measure footer height to pad the scroll area so that history is not hidden behind sticky footer
   useEffect(() => {
