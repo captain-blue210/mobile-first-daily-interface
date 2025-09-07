@@ -100,6 +100,7 @@ export const ReactView = ({
           )
         : 0,
   }));
+  const keyboardHeight = Math.max(0, viewport.occluded - viewport.bottom);
   const [footerHeight, setFooterHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
@@ -263,7 +264,7 @@ export const ReactView = ({
     if (!Platform.isMobile) return;
     if (!isInputFocused) return;
     // Skip if keyboard is already covering the viewport
-    if ((viewport.occluded ?? 0) > 0) return;
+    if (keyboardHeight > 0) return;
     const id = window.setTimeout(() => {
       footerRef.current?.scrollIntoView({
         block: "end",
@@ -271,7 +272,7 @@ export const ReactView = ({
       });
     }, 150);
     return () => window.clearTimeout(id);
-  }, [isInputFocused, viewport.occluded]);
+  }, [isInputFocused, keyboardHeight]);
 
   // Measure footer height to pad the scroll area so that history is not hidden behind sticky footer
   useEffect(() => {
@@ -288,7 +289,7 @@ export const ReactView = ({
   useEffect(() => {
     // Re-measure when viewport occlusion changes (keyboard show/hide)
     setFooterHeight(footerRef.current?.offsetHeight ?? 0);
-  }, [viewport.occluded, asTask, input]);
+  }, [keyboardHeight, asTask, input]);
 
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
@@ -536,7 +537,7 @@ export const ReactView = ({
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
         }}
-        paddingBottom={footerHeight + (viewport.occluded ?? 0)}
+        paddingBottom={footerHeight + keyboardHeight}
       >
         {currentDailyNote && contents}
       </Box>
@@ -546,8 +547,8 @@ export const ReactView = ({
         position="sticky"
         bottom={0}
         transform={
-          Platform.isMobile && (viewport.occluded ?? 0) > 0
-            ? `translateY(${-viewport.occluded}px)`
+          Platform.isMobile && keyboardHeight > 0
+            ? `translateY(${-keyboardHeight}px)`
             : "none"
         }
         zIndex={1}
@@ -565,7 +566,7 @@ export const ReactView = ({
             : {}
         }
         pb={
-          Platform.isMobile && (viewport.occluded ?? 0) > 0
+          Platform.isMobile && keyboardHeight > 0
             ? 0
             : "env(safe-area-inset-bottom, 0px)"
         }
