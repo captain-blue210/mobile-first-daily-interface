@@ -100,7 +100,7 @@ export const ReactView = ({
           )
         : 0,
   }));
-  const keyboardHeight = Math.max(0, viewport.occluded - viewport.bottom);
+  const keyboardHeight = viewport.occluded;
   const [footerHeight, setFooterHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
