@@ -537,7 +537,9 @@ export const ReactView = ({
           overscrollBehavior: "contain",
           WebkitOverflowScrolling: "touch",
         }}
-        paddingBottom={footerHeight + keyboardHeight}
+        paddingBottom={
+          isInputFocused && Platform.isMobile ? 0 : footerHeight + keyboardHeight
+        }
       >
         {currentDailyNote && contents}
       </Box>
