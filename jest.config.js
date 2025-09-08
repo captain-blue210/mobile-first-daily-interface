@@ -5,6 +5,7 @@ const config = {
   },
   moduleNameMapper: {
     "^obsidian$": "<rootDir>/src/__mocks__/obsidian.ts",
+    "^src/(.*)$": "<rootDir>/src/$1",
   },
 };
 

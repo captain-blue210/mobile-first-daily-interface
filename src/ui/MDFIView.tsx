@@ -36,10 +36,13 @@ export class MFDIView extends ItemView {
 
   async onClose() {
     this.root.unmount();
+    this.contentEl.removeClass("mfdi-view");
   }
 
   renderNewView() {
     // Use contentEl for robustness across desktop/mobile layouts
+    // Mark this view's content for scoped CSS overrides
+    this.contentEl.addClass("mfdi-view");
     this.root = createRoot(this.contentEl);
     this.root.render(<ReactView app={this.app} settings={this.settings} />);
   }

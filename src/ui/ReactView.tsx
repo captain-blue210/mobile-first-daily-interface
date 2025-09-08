@@ -1,9 +1,3 @@
-import * as React from "react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
-import { App, Platform, moment, Notice, TFile } from "obsidian";
-import { AppHelper, Task } from "../app-helper";
-import { sorter } from "../utils/collections";
 import {
   ChatIcon,
   CheckCircleIcon,
@@ -11,18 +5,24 @@ import {
   ChevronRightIcon,
   ExternalLinkIcon,
 } from "@chakra-ui/icons";
-import { CSSTransition, TransitionGroup } from "react-transition-group";
+import { Box, Button, Flex, HStack, Input, Textarea } from "@chakra-ui/react";
 import { Moment } from "moment";
-import { PostCardView } from "./PostCardView";
-import { TaskView } from "./TaskView";
-import { replaceDayToJa } from "../utils/strings";
-import { PostFormat, Settings, postFormatMap } from "../settings";
+import { App, Notice, Platform, TFile, moment } from "obsidian";
+import * as React from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { CSSTransition, TransitionGroup } from "react-transition-group";
 import {
   ensureDailyNote,
   getDailyNoteFile,
   resolveDailyNotePath,
 } from "src/obsutils/daily-notes";
 import { parseHeadingSpec } from "src/utils/markdown";
+import { AppHelper, Task } from "../app-helper";
+import { PostFormat, Settings, postFormatMap } from "../settings";
+import { sorter } from "../utils/collections";
+import { replaceDayToJa } from "../utils/strings";
+import { PostCardView } from "./PostCardView";
+import { TaskView } from "./TaskView";
 
 export interface Post {
   timestamp: Moment;
@@ -72,14 +72,37 @@ export const ReactView = ({
   settings: Settings;
 }) => {
   const appHelper = useMemo(() => new AppHelper(app), [app]);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const [date, setDate] = useState<Moment>(moment());
   // デイリーノートが存在しないとnull
   const [currentDailyNote, setCurrentDailyNote] = useState<TFile | null>(null);
   const [input, setInput] = useState("");
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const footerRef = useRef<HTMLDivElement | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [asTask, setAsTask] = useState(false);
+  const [viewport, setViewport] = useState(() => ({
+    bottom:
+      typeof window !== "undefined"
+        ? window.innerHeight -
+          ((window.visualViewport?.height ?? window.innerHeight) +
+            (window.visualViewport?.offsetTop ?? 0))
+        : 0,
+    occluded:
+      typeof window !== "undefined"
+        ? Math.max(
+            0,
+            window.innerHeight -
+              (window.visualViewport?.height ?? window.innerHeight) -
+              (window.visualViewport?.offsetTop ?? 0)
+          )
+        : 0,
+  }));
+  const keyboardHeight = Math.max(0, viewport.occluded - viewport.bottom);
+  const [footerHeight, setFooterHeight] = useState(0);
   const canSubmit = useMemo(() => input.trim().length > 0, [input]);
 
   const updateCurrentDailyNote = () => {
@@ -107,7 +130,10 @@ export const ReactView = ({
     const parsed = parseHeadingSpec(settings.appendSectionSpec);
     const lvl = postFormat.level;
     if (parsed && settings.autoDemotePostHeading) {
-      return { type: "header", level: Math.max(lvl, parsed.level + 1) } as PostFormat;
+      return {
+        type: "header",
+        level: Math.max(lvl, parsed.level + 1),
+      } as PostFormat;
     }
     return postFormat;
   }, [postFormat, settings.appendSectionSpec, settings.autoDemotePostHeading]);
@@ -161,21 +187,26 @@ export const ReactView = ({
               offset: x.offset,
             }))
         : postFormat.type === "list"
-        ? ((
-            await appHelper.getListItems(
+        ? (
+            (await appHelper.getListItems(
               note,
               settings.appendSectionSpec,
               settings.appendSectionEnd,
               settings.timestampFormat
-            )
-          ) ?? [])
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.timestamp, settings.timestampFormat, true),
               message: x.message,
               offset: x.offset,
             }))
             .filter((x) => x.timestamp.isValid())
-        : ((await appHelper.getHeaders(note, (effectivePostFormat as any).level)) ?? [])
+        : (
+            (await appHelper.getHeaders(
+              note,
+              (effectivePostFormat as any).level
+            )) ?? []
+          )
             .map((x) => ({
               timestamp: moment(x.title, settings.timestampFormat, true),
               message: x.body,
@@ -189,6 +220,91 @@ export const ReactView = ({
   const updateTasks = async (note: TFile) => {
     setTasks((await appHelper.getTasks(note)) ?? []);
   };
+
+  useEffect(() => {
+    let timeoutId: number;
+
+    const updateViewport = () => {
+      // iOS でのタイミング問題を解決するためにデバウンス処理を追加
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        const vv = window.visualViewport;
+        const vh = vv?.height ?? window.innerHeight;
+        const top = vv?.offsetTop ?? 0;
+        const occluded = Math.max(0, window.innerHeight - vh - top);
+
+        setViewport((prev) => {
+          const bottom = occluded <= prev.bottom + 10 ? occluded : prev.bottom;
+          return { bottom, occluded };
+        });
+      }, 10);
+    };
+
+    updateViewport();
+
+    // より包括的なイベント監視
+    const events = ["resize", "scroll"];
+    events.forEach((event) => {
+      window.visualViewport?.addEventListener(event, updateViewport);
+    });
+
+    // iOS 特有のオリエンテーション変化も監視
+    window.addEventListener("orientationchange", updateViewport);
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) => {
+        window.visualViewport?.removeEventListener(event, updateViewport);
+      });
+      window.removeEventListener("orientationchange", updateViewport);
+    };
+  }, []);
+
+  // Scroll to bottom when focusing input so footer remains visible
+  useEffect(() => {
+    if (!Platform.isMobile) return;
+    if (!isInputFocused) return;
+    // Skip if keyboard is already covering the viewport
+    if (keyboardHeight > 0) return;
+    const id = window.setTimeout(() => {
+      footerRef.current?.scrollIntoView({
+        block: "end",
+        behavior: "smooth",
+      });
+    }, 150);
+    return () => window.clearTimeout(id);
+  }, [isInputFocused, keyboardHeight]);
+
+  // Measure footer height to pad the scroll area so that history is not hidden behind sticky footer
+  useEffect(() => {
+    const measure = () => setFooterHeight(footerRef.current?.offsetHeight ?? 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (footerRef.current) ro.observe(footerRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  useEffect(() => {
+    // Re-measure when viewport occlusion changes (keyboard show/hide)
+    setFooterHeight(footerRef.current?.offsetHeight ?? 0);
+  }, [keyboardHeight, asTask, input]);
+
+  // Toggle a class on the Obsidian view container to override padding-bottom while input is focused
+  useEffect(() => {
+    const vc = rootRef.current?.closest('.view-content') as HTMLElement | null;
+    if (!vc) return;
+    if (isInputFocused && Platform.isMobile) {
+      vc.classList.add('mfdi-input-focused');
+    } else {
+      vc.classList.remove('mfdi-input-focused');
+    }
+    return () => {
+      vc.classList.remove('mfdi-input-focused');
+    };
+  }, [isInputFocused]);
 
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
@@ -304,7 +420,6 @@ export const ReactView = ({
             borderRadius={"10px"}
             borderColor={"var(--table-border-color)"}
             borderWidth={"2px"}
-            boxShadow={"0 1px 1px 0"}
             marginY={8}
             minHeight={50}
           >
@@ -332,7 +447,6 @@ export const ReactView = ({
             borderRadius={"10px"}
             borderColor={"var(--table-border-color)"}
             borderWidth={"2px"}
-            boxShadow={"0 1px 1px 0"}
             marginY={8}
             minHeight={50}
           >
@@ -378,11 +492,15 @@ export const ReactView = ({
 
   return (
     <Flex
+      ref={rootRef}
       flexDirection="column"
       gap="0.75rem"
-      height="95%"
+      height={"100%"}
       maxWidth="30rem"
-      position={"relative"}
+      width={"100%"}
+      mx={"auto"}
+      position="relative"
+      overflow="hidden"
     >
       <HStack justify="center">
         <ChevronLeftIcon
@@ -426,59 +544,132 @@ export const ReactView = ({
         />
       </Box>
 
-      <Textarea
-        placeholder={asTask ? "タスクを入力" : "思ったことなどを記入"}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        minHeight={"8em"}
-        resize="vertical"
-        autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
-        onKeyUp={handleKeyUp}
-      />
-      <HStack>
-        <Button
-          isDisabled={!canSubmit}
-          className={canSubmit ? "mod-cta" : ""}
-          minHeight={"2.4em"}
-          maxHeight={"2.4em"}
-          flexGrow={1}
-          cursor={canSubmit ? "pointer" : ""}
-          onClick={handleSubmit}
-        >
-          {asTask ? "タスク追加" : "投稿"}
-        </Button>
-        <Box
-          display="flex"
-          gap="0.5em"
-          padding={4}
-          marginRight={8}
-          borderStyle={"solid"}
-          borderRadius={"10px"}
-          borderColor={"var(--table-border-color)"}
-          borderWidth={"2px"}
-          cursor={"pointer"}
-          _hover={{
-            borderColor: "var(--text-success)",
-            transitionDuration: "0.5s",
-          }}
-          transitionDuration={"0.5s"}
-          onClick={() => setAsTask(!asTask)}
-        >
-          <ChatIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-faint)" : "var(--text-success)"}
-            opacity={asTask ? 0.2 : 1}
-          />
-          <CheckCircleIcon
-            boxSize={"1.5em"}
-            color={asTask ? "var(--text-success)" : "var(--text-faint)"}
-            opacity={asTask ? 1 : 0.2}
-          />
-        </Box>
-      </HStack>
-
-      <Box flexGrow={1} overflowY="scroll" overflowX="hidden">
+      <Box
+        flex="1 1 auto"
+        overflowY="auto"
+        overflowX="hidden"
+        minH={0}
+        style={{
+          overscrollBehavior: "contain",
+          WebkitOverflowScrolling: "touch",
+        }}
+        paddingBottom={
+          isInputFocused && Platform.isMobile ? 0 : footerHeight + keyboardHeight
+        }
+      >
         {currentDailyNote && contents}
+      </Box>
+
+      <Box
+        ref={footerRef}
+        position="sticky"
+        bottom={0}
+        transform={
+          Platform.isMobile && keyboardHeight > 0
+            ? `translateY(${-keyboardHeight}px)`
+            : "none"
+        }
+        zIndex={1}
+        bg="var(--background-primary)"
+        p={isInputFocused && Platform.isMobile ? 0 : 2}
+        // iOS でのスペーシング完全除去
+        sx={
+          isInputFocused && Platform.isMobile
+            ? {
+                margin: 0,
+                border: "none",
+                outline: "none",
+                boxSizing: "border-box",
+              }
+            : {}
+        }
+        pb={Platform.isMobile && keyboardHeight > 0 ? 0 : viewport.bottom}
+        flexShrink={0}
+        width="100%"
+      >
+        <Textarea
+          placeholder={asTask ? "タスクを入力" : "メッセージを入力してください"}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          minHeight={"8em"}
+          resize="vertical"
+          autoFocus={Platform.isMobile && settings.autoOpenInputOnMobile}
+          onKeyUp={handleKeyUp}
+          onFocus={() => setIsInputFocused(true)}
+          onBlur={() => setIsInputFocused(false)}
+          ref={textareaRef}
+          width="100%"
+          marginBottom={isInputFocused && Platform.isMobile ? 0 : 2}
+          // iOS でのスペース除去のための強制スタイル
+          sx={
+            isInputFocused && Platform.isMobile
+              ? {
+                  border: "none",
+                  boxShadow: "none",
+                  _focus: {
+                    border: "none",
+                    boxShadow: "none",
+                  },
+                }
+              : {}
+          }
+        />
+        <HStack
+          width="100%"
+          minHeight="3.5em"
+          alignItems="center"
+          spacing={isInputFocused && Platform.isMobile ? 1 : 2}
+          justify="space-between"
+          sx={
+            isInputFocused && Platform.isMobile
+              ? {
+                  margin: 0,
+                  padding: 0,
+                }
+              : {}
+          }
+        >
+          <Box
+            display="flex"
+            gap="0.5em"
+            padding={isInputFocused && Platform.isMobile ? 1 : 4}
+            margin={isInputFocused && Platform.isMobile ? 0 : undefined}
+            marginRight={isInputFocused && Platform.isMobile ? 2 : 8}
+            borderStyle={"solid"}
+            borderRadius={"10px"}
+            borderColor={"var(--table-border-color)"}
+            borderWidth={"2px"}
+            cursor={"pointer"}
+            _hover={{
+              borderColor: "var(--text-success)",
+              transitionDuration: "0.5s",
+            }}
+            transitionDuration={"0.5s"}
+            onClick={() => setAsTask(!asTask)}
+          >
+            <ChatIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-faint)" : "var(--text-success)"}
+              opacity={asTask ? 0.2 : 1}
+            />
+            <CheckCircleIcon
+              boxSize={"1.5em"}
+              color={asTask ? "var(--text-success)" : "var(--text-faint)"}
+              opacity={asTask ? 1 : 0.2}
+            />
+          </Box>
+          <Button
+            isDisabled={!canSubmit}
+            className={canSubmit ? "mod-cta" : ""}
+            minHeight={"2.4em"}
+            maxHeight={"2.4em"}
+            minW={"6em"}
+            cursor={canSubmit ? "pointer" : ""}
+            onClick={handleSubmit}
+          >
+            {asTask ? "タスク追加" : "送信"}
+          </Button>
+        </HStack>
       </Box>
     </Flex>
   );
