@@ -665,6 +665,13 @@ export const ReactView = ({
             maxHeight={"2.4em"}
             minW={"6em"}
             cursor={canSubmit ? "pointer" : ""}
+            // Prevent textarea blur on first tap (iOS Safari closes keyboard and swallows click)
+            // Keep focus so click fires; on touch, submit immediately and suppress synthetic click
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
             onClick={handleSubmit}
           >
             {asTask ? "タスク追加" : "送信"}
