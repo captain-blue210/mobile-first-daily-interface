@@ -98,3 +98,15 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Modal styles removed */
+
+/*
+  Remove Obsidian default bottom padding on our view when the input is focused.
+  Obsidian sets `.workspace-leaf-content .view-content` padding-bottom to
+  `max(var(--safe-area-inset-bottom), var(--size-4-8))`. On mobile with the
+  software keyboard, this can jump to ~336px. We scope the override to this
+  plugin's view only and only while focused.
+*/
+.workspace-leaf-content .view-content.mfdi-view.mfdi-input-focused,
+.view-content.mfdi-view.mfdi-input-focused {
+  padding-bottom: 0 !important;
+}

@@ -1,10 +1,9 @@
-import { CopyIcon, createIcon, TimeIcon } from "@chakra-ui/icons";
+import { CopyIcon, TimeIcon } from "@chakra-ui/icons";
 import { Box, HStack } from "@chakra-ui/react";
 import Markdown from "marked-react";
 import { Notice } from "obsidian";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { postToBluesky } from "../clients/bluesky";
 import { Settings } from "../settings";
 import { createMeta, HTMLMeta, ImageMeta, TwitterMeta } from "../utils/meta";
 import { pickUrls, replaceDayToJa } from "../utils/strings";
@@ -13,21 +12,6 @@ import { HTMLCard } from "./HTMLCard";
 import { ImageCard } from "./ImageCard";
 import { Post } from "./ReactView";
 import { TwitterCard } from "./TwitterCard";
-
-const BlueskyIcon = createIcon({
-  displayName: "BlueskyIcon",
-  viewBox: "5 5 45 45",
-  path: (
-    <path
-      fill="#1185FE"
-      d="M27.5,25.73c-1.6-3.1-5.94-8.89-9.98-11.74c-3.87-2.73-5.35-2.26-6.31-1.82c-1.12,0.51-1.32,2.23-1.32,3.24
-	c0,1.01,0.55,8.3,0.92,9.51c1.2,4.02,5.45,5.38,9.37,4.94c0.2-0.03,0.4-0.06,0.61-0.08c-0.2,0.03-0.41,0.06-0.61,0.08
-	c-5.74,0.85-10.85,2.94-4.15,10.39c7.36,7.62,10.09-1.63,11.49-6.33c1.4,4.69,3.01,13.61,11.35,6.33c6.27-6.33,1.72-9.54-4.02-10.39
-	c-0.2-0.02-0.41-0.05-0.61-0.08c0.21,0.03,0.41,0.05,0.61,0.08c3.92,0.44,8.18-0.92,9.37-4.94c0.36-1.22,0.92-8.5,0.92-9.51
-	c0-1.01-0.2-2.73-1.32-3.24c-0.97-0.44-2.44-0.91-6.31,1.82C33.44,16.85,29.1,22.63,27.5,25.73z"
-    />
-  ),
-});
 
 export const PostCardView = ({
   post,
@@ -47,27 +31,6 @@ export const PostCardView = ({
     new Notice("copied");
   };
 
-  const handleClickPostBlueskyIcon = async () => {
-    const nt = new Notice("🦋 Blueskyに投稿中...", 30 * 1000);
-
-    // 画像のメタデータを優先するが、Blueskyが両方指定を許容するなら対応するのもアリ
-    const meta =
-      imageMetas.length > 0 ? imageMetas.slice(0, 4) : htmlMetas.first();
-    try {
-      await postToBluesky(
-        settings.blueskyIdentifier,
-        settings.blueskyAppPassword,
-        post.message,
-        meta
-      );
-      nt.setMessage("投稿に成功しました");
-      await sleep(5 * 1000);
-      nt.hide();
-    } catch (e) {
-      console.error(e);
-      nt.setMessage(`投稿に失敗しました\n\n${String(e)}`);
-    }
-  };
 
   useEffect(() => {
     (async function () {
@@ -125,14 +88,6 @@ export const PostCardView = ({
           <CopyIcon marginRight={2} />
           copy
         </Box>
-        {settings.blueskyIdentifier && settings.blueskyAppPassword ? (
-          <Box cursor="pointer" onClick={handleClickPostBlueskyIcon}>
-            <BlueskyIcon marginRight={2} />
-            post
-          </Box>
-        ) : (
-          ""
-        )}
       </HStack>
     </Box>
   );

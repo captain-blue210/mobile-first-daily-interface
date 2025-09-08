@@ -10,8 +10,6 @@ export interface Settings {
   leafMobile: string;
   autoStartOnLaunch: boolean;
   autoOpenInputOnMobile: boolean;
-  blueskyIdentifier: string;
-  blueskyAppPassword: string;
   postFormatOption: PostFormatOption;
   dailyNoteDir: string;
   appendSectionSpec: string;
@@ -25,8 +23,6 @@ export const DEFAULT_SETTINGS: Settings = {
   leafMobile: "left",
   autoStartOnLaunch: false,
   autoOpenInputOnMobile: false,
-  blueskyIdentifier: "",
-  blueskyAppPassword: "",
   postFormatOption: "コードブロック",
   dailyNoteDir: "",
   appendSectionSpec: "",
@@ -204,30 +200,5 @@ export class MFDISettingTab extends PluginSettingTab {
         );
       });
 
-    containerEl.createEl("h3", { text: "🦋 Bluesky" });
-
-    new Setting(containerEl).setName("Blueskyのidentifier").addText((cb) => {
-      TextComponentEvent.onChange(cb, async (value) => {
-        this.plugin.settings.blueskyIdentifier = value;
-        await this.plugin.saveSettings();
-        this.plugin.rerenderView();
-      })
-        .setValue(this.plugin.settings.blueskyIdentifier)
-        .setPlaceholder("例: mfdi.bsky.social");
-    });
-
-    new Setting(containerEl)
-      .setName("Blueskyのアプリパスワード")
-      .addText((cb) => {
-        TextComponentEvent.onChange(
-          cb,
-          async (value) => {
-            this.plugin.settings.blueskyAppPassword = value;
-            await this.plugin.saveSettings();
-            this.plugin.rerenderView();
-          },
-          { secret: true }
-        ).setValue(this.plugin.settings.blueskyAppPassword);
-      });
   }
 }

@@ -72,6 +72,7 @@ export const ReactView = ({
   settings: Settings;
 }) => {
   const appHelper = useMemo(() => new AppHelper(app), [app]);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const [date, setDate] = useState<Moment>(moment());
   // デイリーノートが存在しないとnull
@@ -291,6 +292,20 @@ export const ReactView = ({
     setFooterHeight(footerRef.current?.offsetHeight ?? 0);
   }, [keyboardHeight, asTask, input]);
 
+  // Toggle a class on the Obsidian view container to override padding-bottom while input is focused
+  useEffect(() => {
+    const vc = rootRef.current?.closest('.view-content') as HTMLElement | null;
+    if (!vc) return;
+    if (isInputFocused && Platform.isMobile) {
+      vc.classList.add('mfdi-input-focused');
+    } else {
+      vc.classList.remove('mfdi-input-focused');
+    }
+    return () => {
+      vc.classList.remove('mfdi-input-focused');
+    };
+  }, [isInputFocused]);
+
   const handleClickOpenDailyNote = async () => {
     let note = currentDailyNote;
     if (!note) {
@@ -477,6 +492,7 @@ export const ReactView = ({
 
   return (
     <Flex
+      ref={rootRef}
       flexDirection="column"
       gap="0.75rem"
       height={"100%"}
@@ -603,6 +619,7 @@ export const ReactView = ({
           minHeight="3.5em"
           alignItems="center"
           spacing={isInputFocused && Platform.isMobile ? 1 : 2}
+          justify="space-between"
           sx={
             isInputFocused && Platform.isMobile
               ? {
@@ -612,17 +629,6 @@ export const ReactView = ({
               : {}
           }
         >
-          <Button
-            isDisabled={!canSubmit}
-            className={canSubmit ? "mod-cta" : ""}
-            minHeight={"2.4em"}
-            maxHeight={"2.4em"}
-            flexGrow={1}
-            cursor={canSubmit ? "pointer" : ""}
-            onClick={handleSubmit}
-          >
-            {asTask ? "タスク追加" : "送信"}
-          </Button>
           <Box
             display="flex"
             gap="0.5em"
@@ -652,6 +658,17 @@ export const ReactView = ({
               opacity={asTask ? 1 : 0.2}
             />
           </Box>
+          <Button
+            isDisabled={!canSubmit}
+            className={canSubmit ? "mod-cta" : ""}
+            minHeight={"2.4em"}
+            maxHeight={"2.4em"}
+            minW={"6em"}
+            cursor={canSubmit ? "pointer" : ""}
+            onClick={handleSubmit}
+          >
+            {asTask ? "タスク追加" : "送信"}
+          </Button>
         </HStack>
       </Box>
     </Flex>
